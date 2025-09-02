@@ -1,0 +1,86 @@
+# 芯片仿真配置文件示例 (YAML格式)
+
+# 基本仿真配置
+simulation:
+  project_name: "amplifier_simulation"        # 项目名称
+  simulator: "spectre"                        # 仿真器类型 (spectre, hspice, eldo)
+  design_path: "/path/to/design/netlist"      # 原理图netlist路径
+  results_dir: "./results"                    # 仿真结果输出目录
+  temperature: 27.0                           # 仿真温度 (摄氏度)
+  supply_voltage: 1.8                         # 电源电压 (V)
+
+# 模型文件配置
+models:
+  files:
+    - ["/path/to/models/design.scs", ""]          # [模型文件路径, 工艺角]
+    - ["/path/to/models/process.scs", "tt"]       # tt: typical, ff: fast, ss: slow
+    - ["/path/to/models/parasitic.scs", ""]
+
+# 分析配置
+analyses:
+  # 瞬态分析
+  tran:
+    stop: "10n"           # 仿真停止时间
+    step: "1p"            # 时间步长
+    maxstep: "10p"        # 最大时间步长
+    
+  # DC分析
+  dc:
+    saveOppoint: "t"      # 保存工作点
+    param1: "vin"         # 扫描参数1
+    start1: 0             # 起始值
+    stop1: 1.8            # 结束值
+    step1: 0.1            # 步长
+    
+  # AC分析
+  ac:
+    start: "1"            # 起始频率
+    stop: "1G"            # 结束频率
+    dec: 10               # 每十倍频程点数
+
+# 激励文件配置
+stimulus:
+  files:
+    - "/path/to/stimulus/input_signal.scs"
+    - "/path/to/stimulus/clock_signal.scs"
+
+# 设计变量
+variables:
+  vdd: 1.8              # 电源电压
+  vth: 0.4              # 阈值电压
+  temperature_coeff: 1e-3   # 温度系数
+  load_cap: 100e-15     # 负载电容 (F)
+  bias_current: 10e-6   # 偏置电流 (A)
+
+# 输出配置
+outputs:
+  save_nodes:           # 需要保存的节点
+    - "/vout"           # 输出电压
+    - "/vin"            # 输入电压
+    - "/vdd"            # 电源电压
+    - "/vss"            # 地电压
+    - "/ibias"          # 偏置电流
+
+# 初始条件
+initial_conditions:
+  "/vout": 0.9          # 输出节点初始电压
+  "/vin": 0.0           # 输入节点初始电压
+
+# 后处理配置
+post_processing:
+  plot_enabled: true    # 是否启用绘图
+  save_data: true       # 是否保存数据文件
+  
+  plots:                # 绘图配置
+    - data: "v(\"/vout\")"
+      xlabel: "时间 (s)"
+      ylabel: "电压 (V)"
+    - data: "v(\"/vin\")"
+      xlabel: "时间 (s)"  
+      ylabel: "电压 (V)"
+  
+  save_items:           # 数据保存配置
+    - file: "vout_data.csv"
+      data: "v(\"/vout\")"
+    - file: "vin_data.csv"
+      data: "v(\"/vin\")"
