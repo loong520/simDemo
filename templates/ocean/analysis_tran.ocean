@@ -1,0 +1,6 @@
+; 瞬态分析配置
+analysis('tran 
+{% for param, value in analysis_params.items() %}
+         ?{{ param }} {{ value }}
+{% endfor %}
+)

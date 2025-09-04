@@ -40,7 +40,6 @@ pip install -r requirements.txt
 - `numpy`: 数值计算
 - `pandas`: 数据处理
 - `matplotlib`: 绘图
-- `skillbridge`: Cadence Virtuoso Python接口（可选）
 
 ## 快速开始
 
@@ -71,9 +70,6 @@ python main.py -c my_simulation.yaml -g
 
 # 运行Ocean仿真
 python main.py -c my_simulation.yaml -r ocean
-
-# 运行Python仿真
-python main.py -c my_simulation.yaml -r python
 ```
 
 #### 交互式模式
@@ -186,7 +182,6 @@ config = SimulationConfig(
 # 生成脚本
 generator = OceanScriptGenerator(config)
 ocean_script = generator.generate_script()
-python_script = generator.generate_python_skillbridge_script()
 
 # 保存脚本
 generator.save_script("my_simulation.ocn")

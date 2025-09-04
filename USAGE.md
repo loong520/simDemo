@@ -82,9 +82,8 @@ outputs:
 
 ```
 sim_work/
-├── scripts/
-│   ├── project_name.ocn           # 生成的Ocean脚本
-│   └── project_name_skillbridge.py # 生成的Python脚本
+└── scripts/
+    └── project_name.ocn           # 生成的Ocean脚本
 ├── results/
 │   ├── *.log                      # 仿真日志
 │   ├── *.raw                      # 原始数据文件
@@ -100,10 +99,10 @@ sim_work/
 from pathlib import Path
 from main import SimulationManager
 
-# 处理多个配置文件
+# 批量处理多个配置文件
 for config_file in Path("configs").glob("*.yaml"):
     manager = SimulationManager(str(config_file))
-    manager.run_simulation("ocean")
+    manager.run_simulation()
 ```
 
 ### 2. 自定义脚本生成
@@ -128,7 +127,7 @@ from simulator import run_simulation
 
 # 加载配置并运行仿真
 config = load_config("my_config.yaml")
-success, results = run_simulation(config, "ocean")
+success, results = run_simulation(config)
 
 if success:
     print("仿真成功！")
@@ -168,7 +167,7 @@ if success:
 1. **查看详细日志**
    ```bash
    # 日志文件位置
-   ./sim_work/logs/simulation_*.log
+   ./.sim_work/logs/simulation_*.log
    ```
 
 2. **测试配置文件**

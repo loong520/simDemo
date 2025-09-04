@@ -1,0 +1,16 @@
+; 后处理脚本
+selectResult( '{{ analysis_type }} )
+
+{% if plot_enabled %}
+; 绘图配置
+{% for plot in plots %}
+plot( {{ plot.data }} ?xlabel "{{ plot.xlabel }}" ?ylabel "{{ plot.ylabel }}" )
+{% endfor %}
+{% endif %}
+
+{% if save_data %}
+; 保存数据
+{% for save_item in save_items %}
+saveWaveform( "{{ save_item.file }}" {{ save_item.data }} )
+{% endfor %}
+{% endif %}

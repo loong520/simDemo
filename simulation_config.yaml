@@ -1,86 +1,226 @@
 # 芯片仿真配置文件示例 (YAML格式)
 
+# EDA工具配置
+eda_tools:
+  # Cadence Virtuoso工具配置
+  virtuoso:
+    # 启动命令配置
+    executable: "virtuoso" # 主执行命令
+    launch_args: ["-nograph"] # 启动参数
+
+    # Virtuoso所需的所有环境变量
+    environment_variables:
+      [
+        "export CADHOME=/opt/cadence",
+        "export LANG=C",
+        "export CDS_Netlisting_Mode=Analog",
+        "export CDS_LOAD_ENV=CWD",
+        "export CDS=$CADHOME/IC617",
+        "export CDSDIR=$CDS",
+        "export CDSHOME=$CDS",
+        "export CADENCE_DIR=$CDS",
+        "export CDS_INST_DIR=$CDS",
+        "export CDS_ROOT=$CDS",
+        "export CDSROOT=$CDS",
+        "export CDS_LIC_FILE=$CDS/share/license/license.dat",
+        "export CDS_LIC_ONLY=1",
+        "export CDS_AUTO_64BIT=ALL",
+        "export PATH=$PATH:$CDSDIR/tools/dfII/bin:$CDSDIR/tools/plot/bin",
+        "export CDS_ENABLE_VMS=1",
+        "export MMSIMHOME=$CADHOME/MMSIM151",
+        "export PATH=$PATH:$MMSIMHOME/bin:$MMSIMHOME/tools/relxpert/bin",
+        "export SYSTEM_CDS_LIB_DIR=/opt/cadence/IC617/share/cdssetup",
+      ]
+
+    # 仿真器特定选项
+    options:
+      gui_mode: false # 是否启用GUI模式
+      skill_path: "/opt/cadence/skill" # 自定义SKILL路径
+      layout_editor: true # 是否支持版图编辑
+      schematic_editor: true # 是否支持原理图编辑
+
+  # Cadence Spectre工具配置
+  spectre:
+    # 启动命令配置
+    executable: "spectre" # 主执行命令
+    launch_args: ["-nograph", "-replay"] # 启动参数
+
+    # Spectre所需的所有环境变量
+    environment_variables:
+      [
+        "export CADHOME=/opt/cadence",
+        "export ALTOSHOME=$CADHOME/LIBERATE151",
+        "export PATH=$PATH:$ALTOSHOME/bin",
+        "export PATH=$PATH:$ALTOSHOME/tools.lnx86/spectre/bin",
+        "export ALTOS_64=1",
+        "export CDS_LIC_FILE=$CDS/share/license/license.dat",
+      ]
+
+    # 仿真器特定选项
+    options:
+      default_precision: "moderate" # 默认仿真精度
+      max_memory: "8G" # 最大内存使用
+      num_threads: 4 # 并行线程数
+
 # 基本仿真配置
 simulation:
-  project_name: "amplifier_simulation"        # 项目名称
-  simulator: "spectre"                        # 仿真器类型 (spectre, hspice, eldo)
-  design_path: "/path/to/design/netlist"      # 原理图netlist路径
-  results_dir: "./results"                    # 仿真结果输出目录
-  temperature: 27.0                           # 仿真温度 (摄氏度)
-  supply_voltage: 1.8                         # 电源电压 (V)
+  project_dir: "/home/IC/EDA/Test" # 项目目录路径
+  library_name: "test" # 库名称
+  cell_name: "inv" # 单元模块名称
+  design_type: "schematic" # 设计类型 (schematic, layout)
+  simulator: "spectre" # 仿真器类型 (spectre, virtuoso)
+  simulation_path: "/home/IC/simulation" # 仿真根路径
+  temperature: 27.0 # 仿真温度 (摄氏度)
+  supply_voltage: 1.8 # 电源电压 (V)
 
 # 模型文件配置
 models:
   files:
-    - ["/path/to/models/design.scs", ""]          # [模型文件路径, 工艺角]
-    - ["/path/to/models/process.scs", "tt"]       # tt: typical, ff: fast, ss: slow
-    - ["/path/to/models/parasitic.scs", ""]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_v2p6_7p_spe.lib",
+        "tt",
+      ] # [模型文件路径, 工艺角]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_v2p6_7p_spe.lib",
+        "res_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_v2p6_7p_spe.lib",
+        "dio_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_v2p6_7p_spe.lib",
+        "bjt_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_v2p6_7p_spe.lib",
+        "mim_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_v2p6_7p_spe.lib",
+        "var_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_v2p6_7p_spe.lib",
+        "mom_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_v2p6_7p_res_spe.ckt",
+        "",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "mos_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "mim_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "res_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "mom_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "var_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "spirind_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "diffind_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "3tdiffind_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "rf_ind_spi_mf_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "rf_ind_spi_mf_psub_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "rf_3Tdiff_1talpa_tt",
+      ]
+    - [
+        "/home/IC/Tech/PDK_13mmrf_1P6M_30k/models/spectre/ms013_io33_rf_v1p9_spe.lib",
+        "rf_3Tdiff_1talpa_psub_tt",
+      ]
 
 # 分析配置
 analyses:
   # 瞬态分析
   tran:
-    stop: "10n"           # 仿真停止时间
-    step: "1p"            # 时间步长
-    maxstep: "10p"        # 最大时间步长
-    
+    start: "0"
+    stop: "10u" # 仿真停止时间
+    step: "10n" # 仿真步长
+    errpreset: "conservative" # 高精度
+
   # DC分析
   dc:
-    saveOppoint: "t"      # 保存工作点
-    param1: "vin"         # 扫描参数1
-    start1: 0             # 起始值
-    stop1: 1.8            # 结束值
-    step1: 0.1            # 步长
-    
+    saveOppoint: "t" # 保存工作点
+    param1: "vin" # 扫描参数1
+    start1: 0 # 起始值
+    stop1: 1.8 # 结束值
+    step1: 0.1 # 步长
+
   # AC分析
   ac:
-    start: "1"            # 起始频率
-    stop: "1G"            # 结束频率
-    dec: 10               # 每十倍频程点数
+    start: "1" # 起始频率
+    stop: "1G" # 结束频率
+    dec: 10 # 每十倍频程点数
 
 # 激励文件配置
 stimulus:
-  files:
-    - "/path/to/stimulus/input_signal.scs"
-    - "/path/to/stimulus/clock_signal.scs"
+  files: [] # 空数组，跳过激励文件验证
 
 # 设计变量
 variables:
-  vdd: 1.8              # 电源电压
-  vth: 0.4              # 阈值电压
-  temperature_coeff: 1e-3   # 温度系数
-  load_cap: 100e-15     # 负载电容 (F)
-  bias_current: 10e-6   # 偏置电流 (A)
+  vdd: 1.8 # 电源电压
+  vth: 0.4 # 阈值电压
+  temperature_coeff: 1e-3 # 温度系数
+  load_cap: 100e-15 # 负载电容 (F)
+  bias_current: 10e-6 # 偏置电流 (A)
 
 # 输出配置
 outputs:
-  save_nodes:           # 需要保存的节点
-    - "/vout"           # 输出电压
-    - "/vin"            # 输入电压
-    - "/vdd"            # 电源电压
-    - "/vss"            # 地电压
-    - "/ibias"          # 偏置电流
+  save_nodes: # 需要保存的节点
+    - "/vout" # 输出电压
+    - "/vin" # 输入电压
+    - "/vdd" # 电源电压
+    - "/vss" # 地电压
+    - "/ibias" # 偏置电流
 
 # 初始条件
 initial_conditions:
-  "/vout": 0.9          # 输出节点初始电压
-  "/vin": 0.0           # 输入节点初始电压
+  "/vout": 0.9 # 输出节点初始电压
+  "/vin": 0.0 # 输入节点初始电压
 
 # 后处理配置
 post_processing:
-  plot_enabled: true    # 是否启用绘图
-  save_data: true       # 是否保存数据文件
-  
-  plots:                # 绘图配置
-    - data: "v(\"/vout\")"
+  plot_enabled: true # 是否启用绘图
+  save_data: true # 是否保存数据文件
+
+  plots: # 绘图配置
+    - data: 'v("/vout")'
       xlabel: "时间 (s)"
       ylabel: "电压 (V)"
-    - data: "v(\"/vin\")"
-      xlabel: "时间 (s)"  
+    - data: 'v("/vin")'
+      xlabel: "时间 (s)"
       ylabel: "电压 (V)"
-  
-  save_items:           # 数据保存配置
+
+  save_items: # 数据保存配置
     - file: "vout_data.csv"
-      data: "v(\"/vout\")"
+      data: 'v("/vout")'
     - file: "vin_data.csv"
-      data: "v(\"/vin\")"
+      data: 'v("/vin")'

@@ -1,0 +1,2 @@
+; 设置设计
+design( "{{ design_path }}" )

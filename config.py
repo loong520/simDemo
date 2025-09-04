@@ -1,23 +1,135 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 芯片仿真配置文件读取模块
 支持YAML格式的配置文件
 """
 
 import yaml
-import os
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
 
 
 @dataclass
+class EDATool:
+    """EDA工具配置数据类"""
+    # 启动命令配置
+    executable: str = ""
+    launch_args: List[str] = field(default_factory=list)
+    
+    # 环境变量配置（每个成员是"export VAR=value"格式）
+    environment_variables: List[str] = field(default_factory=list)
+    
+    # 工具特定选项
+    options: Dict[str, Any] = field(default_factory=dict)
+    
+    def get_environment_dict(self) -> Dict[str, str]:
+        """
+        获取完整的环境变量字典，用于设置进程环境
+        注意：此方法只处理export格式的环境变量，不处理source命令
+        
+        Returns:
+            环境变量字典
+        """
+        import os
+        env_dict = os.environ.copy()
+        
+        # 解析环境变量列表，将"export VAR=value"格式转换为字典
+        for env_line in self.environment_variables:
+            env_line = env_line.strip()
+            
+            # 跳过source命令，只处理export命令
+            if env_line.startswith('source '):
+                continue
+                
+            # 移除"export "前缀（如果有）
+            if env_line.startswith('export '):
+                env_line = env_line[7:]  # 移除"export "
+            
+            # 解析VAR=value格式
+            if '=' in env_line:
+                var_name, var_value = env_line.split('=', 1)
+                # 移除引号（如果有）
+                var_value = var_value.strip('"\'')
+                env_dict[var_name] = var_value
+        
+        return env_dict
+    
+    def get_source_commands(self) -> List[str]:
+        """
+        获取source命令列表
+        
+        Returns:
+            source命令列表
+        """
+        source_commands = []
+        
+        for env_line in self.environment_variables:
+            env_line = env_line.strip()
+            if env_line.startswith('source '):
+                source_commands.append(env_line)
+        
+        return source_commands
+    
+    def get_export_commands(self) -> List[str]:
+        """
+        获取export命令列表
+        
+        Returns:
+            export命令列表
+        """
+        export_commands = []
+        
+        for env_line in self.environment_variables:
+            env_line = env_line.strip()
+            
+            # 跳过source命令
+            if env_line.startswith('source '):
+                continue
+                
+            # 确保以export开头
+            if not env_line.startswith('export '):
+                env_line = f"export {env_line}"
+                
+            export_commands.append(env_line)
+        
+        return export_commands
+
+
+@dataclass
+class EDASToolsConfig:
+    """EDA工具配置数据类"""
+    # 各个工具的配置
+    spectre: EDATool = field(default_factory=EDATool)
+    virtuoso: EDATool = field(default_factory=EDATool)
+    
+    def get_tool_config(self, tool_name: str) -> Optional[EDATool]:
+        """
+        获取指定工具的配置
+        
+        Args:
+            tool_name: 工具名称
+            
+        Returns:
+            工具配置对象
+        """
+        return getattr(self, tool_name, None)
+
+
+@dataclass
 class SimulationConfig:
     """仿真配置数据类"""
     # 基本仿真配置
-    simulator: str = "spectre"  # 仿真器类型 (spectre, hspice, etc.)
-    design_path: str = ""       # 原理图netlist路径
-    results_dir: str = ""       # 仿真结果输出目录
-    project_name: str = "sim_project"  # 项目名称
+    simulator: str = "spectre"  # 仿真器类型 (spectre, virtuoso, etc.)
+    project_dir: str = ""       # 项目目录路径
+    library_name: str = ""      # 库名称
+    cell_name: str = ""         # 单元名称
+    simulation_path: str = ""   # 仿真路径
+    design_type: str = "schematic"  # 设计类型 (schematic, layout, etc.)
+    
+    # EDA工具配置
+    eda_tools: EDASToolsConfig = field(default_factory=EDASToolsConfig)
     
     # 模型文件配置
     model_files: List[List[str]] = field(default_factory=list)  # 模型文件路径和工艺角
@@ -44,6 +156,27 @@ class SimulationConfig:
     
     # 后处理配置
     post_processing: Dict[str, Any] = field(default_factory=dict)
+    
+    @property
+    def project_name(self) -> str:
+        """从project_dir自动获取项目名称"""
+        if self.project_dir:
+            return Path(self.project_dir).name
+        return "sim_project"
+    
+    @property
+    def design_path(self) -> str:
+        """自动计算design_path"""
+        if not all([self.simulation_path, self.cell_name, self.simulator, self.design_type]):
+            return ""
+        return f"{self.simulation_path}/{self.cell_name}/{self.simulator}/{self.design_type}/netlist/netlist"
+    
+    @property
+    def results_dir(self) -> str:
+        """自动计算results_dir"""
+        if not all([self.simulation_path, self.cell_name, self.simulator, self.design_type]):
+            return ""
+        return f"{self.simulation_path}/{self.cell_name}/{self.simulator}/{self.design_type}"
 
 
 
@@ -91,12 +224,35 @@ class ConfigReader:
             # 创建仿真配置对象
             sim_config = SimulationConfig(
                 simulator=basic_config.get('simulator', 'spectre'),
-                design_path=basic_config.get('design_path', ''),
-                results_dir=basic_config.get('results_dir', './results'),
-                project_name=basic_config.get('project_name', 'sim_project'),
+                project_dir=basic_config.get('project_dir', ''),
+                library_name=basic_config.get('library_name', ''),
+                cell_name=basic_config.get('cell_name', ''),
+                simulation_path=basic_config.get('simulation_path', ''),
+                design_type=basic_config.get('design_type', 'schematic'),
                 temperature=float(basic_config.get('temperature', 27.0)),
                 supply_voltage=float(basic_config.get('supply_voltage', 1.8))
             )
+            
+            # EDA工具配置
+            if 'eda_tools' in self.config_data:
+                eda_config = self.config_data['eda_tools']
+                
+                # 创建EDA工具配置对象
+                tools_config = EDASToolsConfig()
+                
+                # 解析各个工具的配置
+                for tool_name in ['spectre', 'virtuoso']:
+                    if tool_name in eda_config:
+                        tool_config_data = eda_config[tool_name]
+                        tool_config = EDATool(
+                            executable=tool_config_data.get('executable', ''),
+                            launch_args=tool_config_data.get('launch_args', []),
+                            environment_variables=tool_config_data.get('environment_variables', []),
+                            options=tool_config_data.get('options', {})
+                        )
+                        setattr(tools_config, tool_name, tool_config)
+                
+                sim_config.eda_tools = tools_config
             
             # 模型文件配置
             if 'models' in self.config_data:
@@ -146,11 +302,25 @@ class ConfigReader:
         """
         errors = []
         
-        # 检查必要的路径
-        if not config.design_path:
-            errors.append("Design path (design_path) cannot be empty")
-        elif not Path(config.design_path).exists():
-            errors.append(f"Design file does not exist: {config.design_path}")
+        # 检查必要的路径和配置
+        if not config.project_dir:
+            errors.append("Project directory (project_dir) cannot be empty")
+        elif not Path(config.project_dir).exists():
+            errors.append(f"Project directory does not exist: {config.project_dir}")
+        
+        if not config.simulation_path:
+            errors.append("Simulation path (simulation_path) cannot be empty")
+            
+        if not config.library_name:
+            errors.append("Library name (library_name) cannot be empty")
+            
+        if not config.cell_name:
+            errors.append("Cell name (cell_name) cannot be empty")
+        
+        # 检查计算出的design_path
+        design_path = config.design_path
+        if design_path and not Path(design_path).exists():
+            errors.append(f"Design file does not exist (computed path): {design_path}")
         
         # 检查模型文件
         for model_file_info in config.model_files:
@@ -169,9 +339,25 @@ class ConfigReader:
             errors.append("At least one analysis type must be configured")
         
         # 检查仿真器支持
-        supported_simulators = ['spectre', 'hspice', 'eldo']
+        supported_simulators = ['spectre', 'virtuoso']
         if config.simulator not in supported_simulators:
             errors.append(f"Unsupported simulator: {config.simulator}")
+        
+        # 检查EDA工具配置
+        if config.eda_tools:
+            # 获取当前仿真器的工具配置
+            tool_config = config.eda_tools.get_tool_config(config.simulator)
+            if tool_config:
+                # 检查可执行命令是否配置
+                if not tool_config.executable:
+                    errors.append(f"Executable command not configured for simulator: {config.simulator}")
+                
+                # 检查关键环境变量（简化检查）
+                env_vars = tool_config.environment_variables
+                if not env_vars:
+                    errors.append(f"No environment variables configured for simulator: {config.simulator}")
+            else:
+                errors.append(f"No tool configuration found for simulator: {config.simulator}")
         
         return errors
 

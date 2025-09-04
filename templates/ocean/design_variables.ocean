@@ -1,0 +1,4 @@
+; 设置设计变量
+{% for var_name, var_value in design_variables.items() %}
+desVar( "{{ var_name }}" {{ var_value }} )
+{% endfor %}

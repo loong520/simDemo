@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 芯片仿真自动化Demo - 测试脚本
 用于测试各个模块的功能
@@ -16,8 +17,8 @@ sys.path.insert(0, str(project_root))
 
 try:
     from config import SimulationConfig, ConfigReader, load_config
-    from ocean_generator import OceanScriptGenerator, generate_ocean_script
-    from simulator import SimulationExecutor, run_simulation
+    from ocean_generator import OceanScriptGenerator
+    from simulator import SimulationExecutor
     from main import SimulationManager
 except ImportError as e:
     print(f"Module import failed: {e}")
@@ -43,11 +44,12 @@ def test_config_module():
         # 测试编程方式创建配置
         print("Testing programmatic configuration creation...")
         test_config = SimulationConfig(
-            project_name="test_project",
+            project_dir="/test/path",
+            library_name="test_lib", 
+            cell_name="test_cell",
+            simulation_path="/test/path/sim",
             simulator="spectre",
-            design_path="/test/path",
-            analyses={"tran": {"stop": "1n"}},
-            save_nodes=["/vout"]
+            temperature=27.0
         )
         print(f"✓ Programmatic configuration created successfully: {test_config.project_name}")
         
@@ -67,21 +69,11 @@ def test_ocean_generator():
     try:
         # 创建测试配置
         test_config = SimulationConfig(
-            project_name="test_ocean_generation",
+            project_dir="/test/design",
+            library_name="test_lib",
+            cell_name="test_cell", 
+            simulation_path="/test/design/sim",
             simulator="spectre",
-            design_path="/test/design/netlist",
-            results_dir="./test_results",
-            model_files=[
-                ["/test/models/design.scs", ""],
-                ["/test/models/process.scs", "tt"]
-            ],
-            analyses={
-                "tran": {"stop": "10n", "step": "1p"},
-                "dc": {"saveOppoint": "t"}
-            },
-            design_variables={"vdd": 1.8, "temp_coeff": 1e-3},
-            save_nodes=["/vout", "/vin"],
-            initial_conditions={"/vin": 0.0},
             temperature=27.0
         )
         
@@ -114,16 +106,6 @@ def test_ocean_generator():
         
         print("✓ Ocean script generated successfully, contains all required elements")
         
-        # 测试Python脚本生成
-        print("Generating Python script...")
-        python_script = generator.generate_python_skillbridge_script()
-        
-        if "from skillbridge import Workspace" in python_script:
-            print("✓ Python script generated successfully")
-        else:
-            print("✗ Python script generation failed")
-            return False
-        
         # 测试脚本保存
         with tempfile.TemporaryDirectory() as temp_dir:
             script_file = Path(temp_dir) / "test_script.ocn"
@@ -151,10 +133,11 @@ def test_simulator():
     try:
         # 创建测试配置
         test_config = SimulationConfig(
-            project_name="test_simulator",
+            project_dir="/test",
+            library_name="test_lib",
+            cell_name="test_cell",
+            simulation_path="/test/sim", 
             simulator="spectre",
-            design_path="/test/design",
-            results_dir="./test_sim_results",
             analyses={"tran": {"stop": "1n"}},
             save_nodes=["/vout"]
         )
@@ -246,8 +229,8 @@ outputs:
             # 测试脚本生成
             print("Testing script generation...")
             try:
-                scripts = manager.generate_scripts()
-                if scripts and 'ocean_script' in scripts:
+                scripts = manager.generate_complete_scripts()
+                if scripts and 'simulation_script' in scripts:
                     print("✓ Script generation successful")
                 else:
                     print("✗ Script generation failed")
@@ -284,23 +267,19 @@ def test_integration():
             manager = SimulationManager(str(yaml_config), temp_dir)
             
             # 生成脚本
-            scripts = manager.generate_scripts()
+            scripts = manager.generate_complete_scripts()
             
             # 检查生成的脚本文件
-            ocean_script_path = Path(scripts['ocean_script'])
-            python_script_path = Path(scripts['python_script'])
+            ocean_script_path = Path(scripts['simulation_script'])
             
-            if ocean_script_path.exists() and python_script_path.exists():
+            if ocean_script_path.exists():
                 print("✓ Complete workflow script generation successful")
                 
                 # 读取并验证脚本内容
                 with open(ocean_script_path, 'r') as f:
                     ocean_content = f.read()
                 
-                with open(python_script_path, 'r') as f:
-                    python_content = f.read()
-                
-                if "simulator(" in ocean_content and "from skillbridge" in python_content:
+                if "simulator(" in ocean_content:
                     print("✓ Generated script content is correct")
                 else:
                     print("✗ Generated script content is incorrect")

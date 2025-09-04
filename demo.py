@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 芯片仿真自动化Demo - 简单演示脚本
 展示核心功能的使用方法
@@ -23,10 +24,11 @@ def demo_config_loading():
         # 方法1: 编程方式创建配置
         print("Method 1: Programmatic Configuration Creation")
         config = SimulationConfig(
-            project_name="demo_amplifier",
+            project_dir="/demo/path",
+            library_name="demo_lib",
+            cell_name="amplifier",
+            simulation_path="/demo/path/sim",
             simulator="spectre",
-            design_path="/demo/path/amplifier.scs",
-            results_dir="./demo_results",
             temperature=27.0,
             supply_voltage=1.8
         )
@@ -96,18 +98,6 @@ def demo_ocean_script_generation(config):
         generator.save_script(str(script_file))
         print(f"✅ Ocean script saved to: {script_file}")
         
-        # 生成Python脚本
-        print("\nGenerating Python skillbridge script...")
-        python_script = generator.generate_python_skillbridge_script()
-        python_lines = python_script.split('\n')
-        print(f"✅ Python script generated successfully, {len(python_lines)} lines total")
-        
-        # 保存Python脚本
-        python_file = project_root / "demo_generated_skillbridge.py"
-        with open(python_file, 'w', encoding='utf-8') as f:
-            f.write(python_script)
-        print(f"✅ Python script saved to: {python_file}")
-        
         return True
         
     except Exception as e:
@@ -128,10 +118,11 @@ def demo_simulation_manager():
         from config import SimulationConfig
         
         test_config = SimulationConfig(
-            project_name="demo_manager_test",
-            simulator="spectre",
-            design_path="/demo/test/design",
-            results_dir="./demo_test_results"
+            project_dir="/demo/test",
+            library_name="demo_lib",
+            cell_name="test_cell",
+            simulation_path="/demo/test/sim",
+            simulator="spectre"
         )
         
         test_config.analyses = {"tran": {"stop": "1n"}}
@@ -156,10 +147,10 @@ def demo_simulation_manager():
         
         # 生成脚本（不运行仿真）
         print("\nGenerating script files...")
-        scripts = manager.generate_scripts("./demo_scripts")
+        scripts = manager.generate_complete_scripts("./demo_scripts")
         print(f"✅ Script generation completed:")
-        for script_type, script_path in scripts.items():
-            print(f"   {script_type}: {script_path}")
+        print(f"   simulation_script: {scripts['simulation_script']}")
+        print(f"   shell_script: {scripts['shell_script']}")
         
         return True
         
@@ -180,10 +171,11 @@ def demo_complete_workflow():
         from config import SimulationConfig
         
         complete_config = SimulationConfig(
-            project_name="complete_demo",
+            project_dir="/demo/complete",
+            library_name="demo_lib",
+            cell_name="amplifier",
+            simulation_path="/demo/complete/sim",
             simulator="spectre",
-            design_path="/demo/complete/amplifier_netlist",
-            results_dir="./complete_demo_results",
             temperature=27.0,
             supply_voltage=1.8
         )
@@ -264,13 +256,17 @@ def demo_complete_workflow():
         manager = SimulationManager(work_dir="./complete_demo_work")
         manager.config = complete_config
         
-        scripts = manager.generate_scripts("./complete_demo_scripts")
+        scripts = manager.generate_complete_scripts("./complete_demo_scripts")
         print(f"✅ Complete workflow scripts generated:")
+        print(f"   simulation_script: {scripts['simulation_script']}")
+        print(f"   shell_script: {scripts['shell_script']}")
+        
+        # 检查文件是否存在
         for script_type, script_path in scripts.items():
             script_file = Path(script_path)
             if script_file.exists():
                 size = script_file.stat().st_size
-                print(f"   {script_type}: {script_path} ({size} bytes)")
+                print(f"   {script_type} size: {size} bytes")
         
         return True
         
@@ -337,8 +333,7 @@ def main():
     
     # 清理演示生成的文件
     cleanup_files = [
-        "demo_generated.ocn",
-        "demo_generated_skillbridge.py"
+        "demo_generated.ocn"
     ]
     
     print(f"\nCleaning up demo files...")

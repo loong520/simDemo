@@ -1,0 +1,4 @@
+; 保存节点配置
+{% for node in save_nodes %}
+save( '{{ node }} )
+{% endfor %}

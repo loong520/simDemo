@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 仿真执行器模块
 负责执行生成的Ocean脚本和管理仿真流程
@@ -8,12 +10,13 @@ import subprocess
 import time
 import shutil
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple
 import logging
 from datetime import datetime
 
 from config import SimulationConfig
 from ocean_generator import OceanScriptGenerator
+from shell_generator import ShellScriptGenerator
 
 
 class SimulationExecutor:
@@ -42,7 +45,8 @@ class SimulationExecutor:
         
         # 生成的脚本路径
         self.ocean_script_path = None
-        self.python_script_path = None
+        # 注释掉复杂的shell脚本路径字典，因为现在使用一步式生成
+        # self.shell_script_paths = {}  # 新增：shell脚本路径字典
         
         # 仿真进程
         self.simulation_process = None
@@ -107,11 +111,7 @@ class SimulationExecutor:
             self.logger.info("Generating Ocean script...")
             self.ocean_script_path = self._generate_ocean_script()
             
-            # 4. 生成Python脚本
-            self.logger.info("Generating Python script...")
-            self.python_script_path = self._generate_python_script()
-            
-            # 5. 检查仿真器环境
+            # 4. 检查仿真器环境
             self.logger.info("Checking simulator environment...")
             if not self._check_simulator_environment():
                 self.logger.warning("Simulator environment check failed, manual environment variable setup may be required")
@@ -152,23 +152,7 @@ class SimulationExecutor:
         
         return saved_path
     
-    def _generate_python_script(self) -> str:
-        """
-        生成Python脚本
-        
-        Returns:
-            生成的脚本文件路径
-        """
-        generator = OceanScriptGenerator(self.config)
-        python_content = generator.generate_python_skillbridge_script()
-        
-        script_path = self.work_dir / "scripts" / f"{self.config.project_name}_skillbridge.py"
-        
-        with open(script_path, 'w', encoding='utf-8') as f:
-            f.write(python_content)
-        
-        self.logger.info(f"Python script generated: {script_path}")
-        return str(script_path)
+
     
     def _check_simulator_environment(self) -> bool:
         """
@@ -182,8 +166,7 @@ class SimulationExecutor:
         # 检查常见的仿真器命令
         simulator_commands = {
             'spectre': ['spectre', 'spectreX'],
-            'hspice': ['hspice', 'hspiceX'],
-            'eldo': ['eldo']
+            'virtuoso': ['virtuoso'],
         }
         
         if simulator in simulator_commands:
@@ -224,8 +207,8 @@ class SimulationExecutor:
             
             if simulator == 'spectre':
                 cmd = ['ocean', '-nograph', '-replay', self.ocean_script_path]
-            elif simulator == 'hspice':
-                cmd = ['hspice', '-i', self.ocean_script_path]
+            elif simulator == 'virtuoso':
+                cmd = ['ocean', '-nograph', '-replay', self.ocean_script_path]
             else:
                 # 通用命令
                 cmd = ['ocean', '-nograph', '-replay', self.ocean_script_path]
@@ -249,14 +232,15 @@ class SimulationExecutor:
             
             # 实时输出日志
             output_lines = []
-            while True:
-                output = self.simulation_process.stdout.readline()
-                if output == '' and self.simulation_process.poll() is not None:
-                    break
-                if output:
-                    line = output.strip()
-                    output_lines.append(line)
-                    self.logger.info(f"Simulation output: {line}")
+            if self.simulation_process.stdout:
+                while True:
+                    output = self.simulation_process.stdout.readline()
+                    if output == '' and self.simulation_process.poll() is not None:
+                        break
+                    if output:
+                        line = output.strip()
+                        output_lines.append(line)
+                        self.logger.info(f"Simulation output: {line}")
             
             # 等待完成
             return_code = self.simulation_process.wait(timeout=timeout)
@@ -286,81 +270,7 @@ class SimulationExecutor:
             self.logger.error(f"Error running Ocean simulation: {e}")
             return False, str(e)
     
-    def run_python_simulation(self, timeout: int = 3600) -> Tuple[bool, str]:
-        """
-        运行Python skillbridge仿真
-        
-        Args:
-            timeout: 超时时间（秒）
-            
-        Returns:
-            (成功状态, 输出信息)
-        """
-        if not self.python_script_path:
-            return False, "Python script not generated"
-        
-        try:
-            self.simulation_status = "Running Python simulation"
-            self.start_time = datetime.now()
-            self.logger.info("Starting Python skillbridge simulation...")
-            
-            # 准备命令
-            cmd = ['python', self.python_script_path]
-            
-            # 设置工作目录和环境
-            work_env = os.environ.copy()
-            cwd = self.work_dir / "temp"
-            
-            self.logger.info(f"Executing command: {' '.join(cmd)}")
-            self.logger.info(f"Working directory: {cwd}")
-            
-            # 运行仿真
-            self.simulation_process = subprocess.Popen(
-                cmd,
-                cwd=cwd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-                env=work_env
-            )
-            
-            # 实时输出日志
-            output_lines = []
-            while True:
-                output = self.simulation_process.stdout.readline()
-                if output == '' and self.simulation_process.poll() is not None:
-                    break
-                if output:
-                    line = output.strip()
-                    output_lines.append(line)
-                    self.logger.info(f"Simulation output: {line}")
-            
-            # 等待完成
-            return_code = self.simulation_process.wait(timeout=timeout)
-            
-            self.end_time = datetime.now()
-            duration = self.end_time - self.start_time
-            
-            if return_code == 0:
-                self.simulation_status = "Python simulation completed"
-                self.logger.info(f"Python simulation completed successfully, elapsed time: {duration}")
-                return True, '\n'.join(output_lines)
-            else:
-                self.simulation_status = "Python simulation failed"
-                self.logger.error(f"Python simulation failed, return code: {return_code}")
-                return False, '\n'.join(output_lines)
-                
-        except subprocess.TimeoutExpired:
-            self.simulation_status = "PythonSimulation timeout"
-            self.logger.error(f"Python simulation timeout ({timeout} seconds)")
-            if self.simulation_process:
-                self.simulation_process.terminate()
-            return False, "Simulation timeout"
-            
-        except Exception as e:
-            self.simulation_status = "Python simulation error"
-            self.logger.error(f"Error running Python simulation: {e}")
-            return False, str(e)
+
     
     def stop_simulation(self):
         """停止正在运行的仿真"""
@@ -389,7 +299,6 @@ class SimulationExecutor:
             'duration': str(self.end_time - self.start_time) if self.start_time and self.end_time else None,
             'work_dir': str(self.work_dir),
             'ocean_script': self.ocean_script_path,
-            'python_script': self.python_script_path,
             'log_files': self.log_files,
             'results_dir': str(self.config.results_dir),
             'project_name': self.config.project_name
@@ -470,7 +379,6 @@ class SimulationExecutor:
 
 
 def run_simulation(config: SimulationConfig, 
-                  simulation_type: str = "ocean",
                   work_dir: Optional[str] = None,
                   timeout: int = 3600) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -478,7 +386,6 @@ def run_simulation(config: SimulationConfig,
     
     Args:
         config: 仿真配置对象
-        simulation_type: 仿真类型 ("ocean" 或 "python")
         work_dir: 工作目录
         timeout: 超时时间
         
@@ -493,10 +400,7 @@ def run_simulation(config: SimulationConfig,
             return False, {"error": "Simulation preparation failed"}
         
         # 运行仿真
-        if simulation_type.lower() == "python":
-            success, output = executor.run_python_simulation(timeout)
-        else:
-            success, output = executor.run_ocean_simulation(timeout)
+        success, output = executor.run_ocean_simulation(timeout)
         
         # 收集结果
         results = executor.collect_results()
@@ -519,10 +423,11 @@ if __name__ == "__main__":
     
     # 创建测试配置
     test_config = SimulationConfig(
+        project_dir="/path/to/test",
+        library_name="test_lib",
+        cell_name="test_cell",
+        simulation_path="/path/to/test/sim",
         simulator="spectre",
-        design_path="/path/to/test/design",
-        results_dir="./test_results",
-        project_name="test_simulation",
         analyses={"tran": {"stop": "1n"}},
         save_nodes=["/vout"],
         temperature=27.0
@@ -535,7 +440,6 @@ if __name__ == "__main__":
     if executor.prepare_simulation():
         print("Simulation environment prepared successfully")
         print(f"Ocean script: {executor.ocean_script_path}")
-        print(f"Python script: {executor.python_script_path}")
         
         # 显示状态
         status = executor.get_simulation_status()

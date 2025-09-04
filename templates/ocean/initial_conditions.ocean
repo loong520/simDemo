@@ -1,0 +1,4 @@
+; 初始条件设置
+{% for node, value in initial_conditions.items() %}
+ic( "{{ node }}" {{ value }} )
+{% endfor %}

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 芯片仿真自动化Demo - 安装脚本
 检查和安装必要的依赖包
@@ -57,7 +58,7 @@ def main():
     
     # 可选的包列表
     optional_packages = [
-        ("skillbridge", "skillbridge"),
+
     ]
     
     print("\nChecking required dependencies...")

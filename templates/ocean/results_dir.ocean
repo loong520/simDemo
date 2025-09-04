@@ -1,0 +1,2 @@
+; 设置结果目录
+resultsDir( "{{ results_dir }}" )

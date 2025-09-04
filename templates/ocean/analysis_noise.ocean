@@ -1,0 +1,6 @@
+; 噪声分析配置
+analysis('noise 
+{% for param, value in analysis_params.items() %}
+         ?{{ param }} {{ value }}
+{% endfor %}
+)

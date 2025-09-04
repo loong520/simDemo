@@ -1,0 +1,10 @@
+; 加载模型文件
+{% for model in model_files %}
+modelFile( 
+{% if model|length >= 2 %}
+    list("{{ model[0] }}" "{{ model[1] }}")
+{% else %}
+    list("{{ model[0] }}" "")
+{% endif %}
+)
+{% endfor %}

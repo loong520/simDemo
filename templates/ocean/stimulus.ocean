@@ -1,0 +1,4 @@
+; 加载激励文件
+{% for stim_file in stimulus_files %}
+loadi( "{{ stim_file }}" )
+{% endfor %}

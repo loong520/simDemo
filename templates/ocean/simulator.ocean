@@ -1,0 +1,2 @@
+; 设置仿真器
+simulator( '{{ simulator }} )

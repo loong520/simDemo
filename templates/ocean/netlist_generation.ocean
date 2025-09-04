@@ -1,0 +1,6 @@
+; Netlist generation Ocean script template
+; This script generates the netlist file for the specified design
+
+simulator( '{{ simulator }} )
+design( "{{ library_name }}" "{{ cell_name }}" "{{ design_type }}" )
+createNetlist()

@@ -1,0 +1,6 @@
+; DC分析配置
+analysis('dc ?saveOppoint t 
+{% for param, value in analysis_params.items() %}
+         ?{{ param }} {{ value }}
+{% endfor %}
+)
