@@ -6,25 +6,31 @@
 """
 
 import yaml
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, field
-from pathlib import Path
+import os
+from collections import defaultdict
 
 
-@dataclass
-class EDATool:
+class ServerConfig(object):
+    """服务器配置数据类"""
+    def __init__(self, url="", api_key=""):
+        self.url = url      # 服务器URL
+        self.api_key = api_key  # API密钥
+
+
+class EDATool(object):
     """EDA工具配置数据类"""
-    # 启动命令配置
-    executable: str = ""
-    launch_args: List[str] = field(default_factory=list)
+    def __init__(self, executable="", launch_args=None, environment_variables=None, options=None):
+        # 启动命令配置
+        self.executable = executable
+        self.launch_args = launch_args or []
+        
+        # 环境变量配置（每个成员是"export VAR=value"格式）
+        self.environment_variables = environment_variables or []
+        
+        # 工具特定选项
+        self.options = options or {}
     
-    # 环境变量配置（每个成员是"export VAR=value"格式）
-    environment_variables: List[str] = field(default_factory=list)
-    
-    # 工具特定选项
-    options: Dict[str, Any] = field(default_factory=dict)
-    
-    def get_environment_dict(self) -> Dict[str, str]:
+    def get_environment_dict(self):
         """
         获取完整的环境变量字典，用于设置进程环境
         注意：此方法只处理export格式的环境变量，不处理source命令
@@ -56,7 +62,7 @@ class EDATool:
         
         return env_dict
     
-    def get_source_commands(self) -> List[str]:
+    def get_source_commands(self):
         """
         获取source命令列表
         
@@ -72,7 +78,7 @@ class EDATool:
         
         return source_commands
     
-    def get_export_commands(self) -> List[str]:
+    def get_export_commands(self):
         """
         获取export命令列表
         
@@ -90,21 +96,21 @@ class EDATool:
                 
             # 确保以export开头
             if not env_line.startswith('export '):
-                env_line = f"export {env_line}"
+                env_line = "export " + env_line
                 
             export_commands.append(env_line)
         
         return export_commands
 
 
-@dataclass
-class EDASToolsConfig:
+class EDASToolsConfig(object):
     """EDA工具配置数据类"""
-    # 各个工具的配置
-    spectre: EDATool = field(default_factory=EDATool)
-    virtuoso: EDATool = field(default_factory=EDATool)
+    def __init__(self):
+        # 各个工具的配置
+        self.spectre = EDATool()
+        self.virtuoso = EDATool()
     
-    def get_tool_config(self, tool_name: str) -> Optional[EDATool]:
+    def get_tool_config(self, tool_name):
         """
         获取指定工具的配置
         
@@ -117,125 +123,149 @@ class EDASToolsConfig:
         return getattr(self, tool_name, None)
 
 
-@dataclass
-class SimulationConfig:
+class SimulationConfig(object):
     """仿真配置数据类"""
-    # 基本仿真配置
-    simulator: str = "spectre"  # 仿真器类型 (spectre, virtuoso, etc.)
-    project_dir: str = ""       # 项目目录路径
-    library_name: str = ""      # 库名称
-    cell_name: str = ""         # 单元名称
-    simulation_path: str = ""   # 仿真路径
-    design_type: str = "schematic"  # 设计类型 (schematic, layout, etc.)
-    
-    # EDA工具配置
-    eda_tools: EDASToolsConfig = field(default_factory=EDASToolsConfig)
-    
-    # 模型文件配置
-    model_files: List[List[str]] = field(default_factory=list)  # 模型文件路径和工艺角
-    
-    # 仿真分析配置
-    analyses: Dict[str, Dict[str, Any]] = field(default_factory=dict)  # 分析类型和参数
-    
-    # 激励配置
-    stimulus_files: List[str] = field(default_factory=list)    # 激励文件路径
-    
-    # 设计变量
-    design_variables: Dict[str, Any] = field(default_factory=dict)
-    
-    # 保存节点
-    save_nodes: List[str] = field(default_factory=list)
-    
-    # 环境配置
-    temperature: float = 27.0           # 仿真温度
-    supply_voltage: float = 1.8         # 电源电压
-    
-    
-    # 收敛配置
-    initial_conditions: Dict[str, float] = field(default_factory=dict)
-    
-    # 后处理配置
-    post_processing: Dict[str, Any] = field(default_factory=dict)
+    def __init__(self):
+        # 基本仿真配置
+        self.simulator = "spectre"  # 仿真器类型 (spectre, virtuoso, etc.)
+        self.project_dir = ""       # 项目目录路径
+        self.library_name = ""      # 库名称
+        self.cell_name = ""         # 单元名称
+        self.simulation_path = ""   # 仿真路径
+        self.design_type = "schematic"  # 设计类型 (schematic, layout, etc.)
+        
+        # EDA工具配置 (从系统配置文件加载)
+        self.eda_tools = EDASToolsConfig()
+        
+        # 模型文件配置 (从testbench配置文件加载)
+        self.model_files = []  # 模型文件路径和工艺角
+        
+        # 仿真分析配置 (从testbench配置文件加载)
+        self.analyses = {}  # 分析类型和参数
+        
+        # 激励配置 (从testbench配置文件加载)
+        self.stimulus_files = []    # 激励文件路径
+        
+        # 设计变量 (从testbench配置文件加载)
+        self.design_variables = {}
+        
+        # 保存节点 (从testbench配置文件加载)
+        self.save_nodes = []
+        
+        # 环境配置
+        self.temperature = 27.0           # 仿真温度
+        self.supply_voltage = 1.8         # 电源电压
+        
+        # 服务器配置 (从系统配置文件加载)
+        self.server = ServerConfig()
+        
+        # 收敛配置 (从testbench配置文件加载)
+        self.initial_conditions = {}
+        
+        # 后处理配置 (从testbench配置文件加载)
+        self.post_processing = {}
     
     @property
-    def project_name(self) -> str:
+    def project_name(self):
         """从project_dir自动获取项目名称"""
         if self.project_dir:
-            return Path(self.project_dir).name
+            return os.path.basename(self.project_dir)
         return "sim_project"
     
     @property
-    def design_path(self) -> str:
+    def design_path(self):
         """自动计算design_path"""
         if not all([self.simulation_path, self.cell_name, self.simulator, self.design_type]):
             return ""
-        return f"{self.simulation_path}/{self.cell_name}/{self.simulator}/{self.design_type}/netlist/netlist"
+        return "{}/{}/{}/{}/netlist/netlist".format(
+            self.simulation_path, self.cell_name, self.simulator, self.design_type)
     
     @property
-    def results_dir(self) -> str:
+    def results_dir(self):
         """自动计算results_dir"""
         if not all([self.simulation_path, self.cell_name, self.simulator, self.design_type]):
             return ""
-        return f"{self.simulation_path}/{self.cell_name}/{self.simulator}/{self.design_type}"
+        return "{}/{}/{}/{}".format(
+            self.simulation_path, self.cell_name, self.simulator, self.design_type)
 
 
-
-
-class ConfigReader:
+class ConfigReader(object):
     """配置文件读取器"""
     
-    def __init__(self, config_file: str):
+    # 系统配置文件路径（全局变量）
+    SYSTEM_CONFIG_FILE = "conf/system_config.yaml"
+    
+    def __init__(self, config_file=None):
         """
         初始化配置读取器
         
         Args:
-            config_file: 配置文件路径
+            config_file: 仿真任务配置文件路径
         """
-        self.config_file = Path(config_file)
-        if not self.config_file.exists():
-            raise FileNotFoundError(f"Configuration file not found: {config_file}")
+        self.config_file = config_file
+        self.system_config_data = self._load_system_config()
+        self.testbench_config_data = {}
         
-        self.config_data = self._load_config()
+        if self.config_file and os.path.exists(self.config_file):
+            self.task_config_data = self._load_config(self.config_file)
+            # 加载testbench配置
+            testbench_path = self.task_config_data.get('testbench_config')
+            if testbench_path:
+                testbench_file = testbench_path
+                if not os.path.exists(testbench_file):
+                    # 尝试在相同目录下查找
+                    task_config_dir = os.path.dirname(self.config_file)
+                    testbench_file = os.path.join(task_config_dir, testbench_path)
+                if os.path.exists(testbench_file):
+                    self.testbench_config_data = self._load_config(testbench_file)
+        else:
+            self.task_config_data = {}
     
-    def _load_config(self) -> Dict[str, Any]:
+    def _load_system_config(self):
+        """加载系统配置文件"""
+        system_config_path = self.SYSTEM_CONFIG_FILE
+        if not os.path.exists(system_config_path):
+            raise IOError("System configuration file not found: {}".format(self.SYSTEM_CONFIG_FILE))
+        return self._load_config(system_config_path)
+    
+    def _load_config(self, config_path):
         """加载配置文件"""
-        file_ext = self.config_file.suffix.lower()
+        file_ext = os.path.splitext(config_path)[1].lower()
         
         if file_ext in ['.yaml', '.yml']:
-            return self._load_yaml()
+            return self._load_yaml(config_path)
         else:
-            raise ValueError(f"Unsupported configuration file format: {file_ext}, only YAML format is supported")
+            raise ValueError("Unsupported configuration file format: {}, only YAML format is supported".format(file_ext))
     
-    def _load_yaml(self) -> Dict[str, Any]:
+    def _load_yaml(self, config_path):
         """加载YAML配置文件"""
         try:
-            with open(self.config_file, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
+            with open(config_path, 'r') as f:
+                return yaml.safe_load(f) or {}
         except yaml.YAMLError as e:
-            raise ValueError(f"YAML configuration file parsing error: {e}")
+            raise ValueError("YAML configuration file parsing error: {}".format(e))
 
     
-    def get_simulation_config(self) -> SimulationConfig:
+    def get_simulation_config(self):
         """获取仿真配置对象"""
         try:
-            # 基本配置
-            basic_config = self.config_data.get('simulation', {})
-            
             # 创建仿真配置对象
-            sim_config = SimulationConfig(
-                simulator=basic_config.get('simulator', 'spectre'),
-                project_dir=basic_config.get('project_dir', ''),
-                library_name=basic_config.get('library_name', ''),
-                cell_name=basic_config.get('cell_name', ''),
-                simulation_path=basic_config.get('simulation_path', ''),
-                design_type=basic_config.get('design_type', 'schematic'),
-                temperature=float(basic_config.get('temperature', 27.0)),
-                supply_voltage=float(basic_config.get('supply_voltage', 1.8))
-            )
+            sim_config = SimulationConfig()
             
-            # EDA工具配置
-            if 'eda_tools' in self.config_data:
-                eda_config = self.config_data['eda_tools']
+            # 从任务配置文件加载基本仿真配置
+            basic_config = self.task_config_data.get('simulation', {})
+            sim_config.simulator = basic_config.get('simulator', 'spectre')
+            sim_config.project_dir = basic_config.get('project_dir', '')
+            sim_config.library_name = basic_config.get('library_name', '')
+            sim_config.cell_name = basic_config.get('cell_name', '')
+            sim_config.simulation_path = basic_config.get('simulation_path', '')
+            sim_config.design_type = basic_config.get('design_type', 'schematic')
+            sim_config.temperature = float(basic_config.get('temperature', 27.0))
+            sim_config.supply_voltage = float(basic_config.get('supply_voltage', 1.8))
+            
+            # 从系统配置文件加载EDA工具配置
+            if 'eda_tools' in self.system_config_data:
+                eda_config = self.system_config_data['eda_tools']
                 
                 # 创建EDA工具配置对象
                 tools_config = EDASToolsConfig()
@@ -254,43 +284,51 @@ class ConfigReader:
                 
                 sim_config.eda_tools = tools_config
             
-            # 模型文件配置
-            if 'models' in self.config_data:
-                model_config = self.config_data['models']
+            # 从系统配置文件加载服务器配置
+            if 'server' in self.system_config_data:
+                server_config = self.system_config_data['server']
+                sim_config.server = ServerConfig(
+                    url=server_config.get('url', ''),
+                    api_key=server_config.get('api_key', '')
+                )
+            
+            # 从testbench配置文件加载模型文件配置
+            if 'models' in self.testbench_config_data:
+                model_config = self.testbench_config_data['models']
                 sim_config.model_files = model_config.get('files', [])
             
-            # 分析配置
-            if 'analyses' in self.config_data:
-                sim_config.analyses = self.config_data['analyses']
+            # 从testbench配置文件加载分析配置
+            if 'analyses' in self.testbench_config_data:
+                sim_config.analyses = self.testbench_config_data['analyses']
             
-            # 激励文件
-            if 'stimulus' in self.config_data:
-                stimulus_config = self.config_data['stimulus']
+            # 从testbench配置文件加载激励文件
+            if 'stimulus' in self.testbench_config_data:
+                stimulus_config = self.testbench_config_data['stimulus']
                 sim_config.stimulus_files = stimulus_config.get('files', [])
             
-            # 设计变量
-            if 'variables' in self.config_data:
-                sim_config.design_variables = self.config_data['variables']
+            # 从testbench配置文件加载设计变量
+            if 'variables' in self.testbench_config_data:
+                sim_config.design_variables = self.testbench_config_data['variables']
             
-            # 保存节点
-            if 'outputs' in self.config_data:
-                output_config = self.config_data['outputs']
+            # 从testbench配置文件加载保存节点
+            if 'outputs' in self.testbench_config_data:
+                output_config = self.testbench_config_data['outputs']
                 sim_config.save_nodes = output_config.get('save_nodes', [])
             
-            # 初始条件
-            if 'initial_conditions' in self.config_data:
-                sim_config.initial_conditions = self.config_data['initial_conditions']
+            # 从testbench配置文件加载初始条件
+            if 'initial_conditions' in self.testbench_config_data:
+                sim_config.initial_conditions = self.testbench_config_data['initial_conditions']
             
-            # 后处理配置
-            if 'post_processing' in self.config_data:
-                sim_config.post_processing = self.config_data['post_processing']
+            # 从testbench配置文件加载后处理配置
+            if 'post_processing' in self.testbench_config_data:
+                sim_config.post_processing = self.testbench_config_data['post_processing']
             
             return sim_config
             
         except Exception as e:
-            raise ValueError(f"Configuration file parsing error: {e}")
+            raise ValueError("Configuration file parsing error: {}".format(e))
     
-    def validate_config(self, config: SimulationConfig) -> List[str]:
+    def validate_config(self, config):
         """
         验证配置文件的有效性
         
@@ -305,8 +343,8 @@ class ConfigReader:
         # 检查必要的路径和配置
         if not config.project_dir:
             errors.append("Project directory (project_dir) cannot be empty")
-        elif not Path(config.project_dir).exists():
-            errors.append(f"Project directory does not exist: {config.project_dir}")
+        elif not os.path.exists(config.project_dir):
+            errors.append("Project directory does not exist: {}".format(config.project_dir))
         
         if not config.simulation_path:
             errors.append("Simulation path (simulation_path) cannot be empty")
@@ -319,20 +357,20 @@ class ConfigReader:
         
         # 检查计算出的design_path
         design_path = config.design_path
-        if design_path and not Path(design_path).exists():
-            errors.append(f"Design file does not exist (computed path): {design_path}")
+        if design_path and not os.path.exists(design_path):
+            errors.append("Design file does not exist (computed path): {}".format(design_path))
         
         # 检查模型文件
         for model_file_info in config.model_files:
             if isinstance(model_file_info, list) and len(model_file_info) >= 1:
                 model_path = model_file_info[0]
-                if not Path(model_path).exists():
-                    errors.append(f"Model file does not exist: {model_path}")
+                if not os.path.exists(model_path):
+                    errors.append("Model file does not exist: {}".format(model_path))
         
         # 检查激励文件
         for stimulus_file in config.stimulus_files:
-            if not Path(stimulus_file).exists():
-                errors.append(f"Stimulus file does not exist: {stimulus_file}")
+            if not os.path.exists(stimulus_file):
+                errors.append("Stimulus file does not exist: {}".format(stimulus_file))
         
         # 检查分析配置
         if not config.analyses:
@@ -341,7 +379,7 @@ class ConfigReader:
         # 检查仿真器支持
         supported_simulators = ['spectre', 'virtuoso']
         if config.simulator not in supported_simulators:
-            errors.append(f"Unsupported simulator: {config.simulator}")
+            errors.append("Unsupported simulator: {}".format(config.simulator))
         
         # 检查EDA工具配置
         if config.eda_tools:
@@ -350,24 +388,66 @@ class ConfigReader:
             if tool_config:
                 # 检查可执行命令是否配置
                 if not tool_config.executable:
-                    errors.append(f"Executable command not configured for simulator: {config.simulator}")
+                    errors.append("Executable command not configured for simulator: {}".format(config.simulator))
                 
                 # 检查关键环境变量（简化检查）
                 env_vars = tool_config.environment_variables
                 if not env_vars:
-                    errors.append(f"No environment variables configured for simulator: {config.simulator}")
+                    errors.append("No environment variables configured for simulator: {}".format(config.simulator))
             else:
-                errors.append(f"No tool configuration found for simulator: {config.simulator}")
+                errors.append("No tool configuration found for simulator: {}".format(config.simulator))
         
         return errors
 
 
-def load_config(config_file: str) -> SimulationConfig:
+def load_system_config():
     """
-    便捷函数：加载配置文件并返回配置对象
+    便捷函数：加载系统配置文件并返回配置对象（用于HTTP接口）
+    
+    Returns:
+        仿真配置对象（仅包含系统配置）
+    """
+    reader = ConfigReader()
+    config = SimulationConfig()
+    
+    # 从系统配置文件加载EDA工具配置
+    if 'eda_tools' in reader.system_config_data:
+        eda_config = reader.system_config_data['eda_tools']
+        
+        # 创建EDA工具配置对象
+        tools_config = EDASToolsConfig()
+        
+        # 解析各个工具的配置
+        for tool_name in ['spectre', 'virtuoso']:
+            if tool_name in eda_config:
+                tool_config_data = eda_config[tool_name]
+                tool_config = EDATool(
+                    executable=tool_config_data.get('executable', ''),
+                    launch_args=tool_config_data.get('launch_args', []),
+                    environment_variables=tool_config_data.get('environment_variables', []),
+                    options=tool_config_data.get('options', {})
+                )
+                setattr(tools_config, tool_name, tool_config)
+        
+        config.eda_tools = tools_config
+    
+    # 从系统配置文件加载服务器配置
+    if 'server' in reader.system_config_data:
+        server_config = reader.system_config_data['server']
+        config.server = ServerConfig(
+            url=server_config.get('url', ''),
+            api_key=server_config.get('api_key', '')
+        )
+    
+    return config
+
+
+def load_task_config(config_file):
+    """
+    便捷函数：加载仿真任务配置文件并返回配置对象
     
     Args:
-        config_file: 配置文件路径
+        config_file: 仿真任务配置文件路径
         
     Returns:
         仿真配置对象
@@ -378,7 +458,7 @@ def load_config(config_file: str) -> SimulationConfig:
     # 验证配置
     errors = reader.validate_config(config)
     if errors:
-        error_msg = "Configuration file validation failed:\n" + "\n".join(f"- {error}" for error in errors)
+        error_msg = "Configuration file validation failed:\n" + "\n".join("- {}".format(error) for error in errors)
         raise ValueError(error_msg)
     
     return config
@@ -387,10 +467,16 @@ def load_config(config_file: str) -> SimulationConfig:
 if __name__ == "__main__":
     # 测试配置读取功能
     try:
-        config = load_config("simulation_config.yaml")
-        print("Configuration loaded successfully!")
-        print(f"Simulator: {config.simulator}")
-        print(f"Design path: {config.design_path}")
-        print(f"Analysis types: {list(config.analyses.keys())}")
+        # 测试系统配置加载
+        system_config = load_system_config()
+        print("System configuration loaded successfully!")
+        print("Server URL: {}".format(system_config.server.url))
+        
+        # 测试任务配置加载
+        task_config = load_task_config("simulation_task_config.yaml")
+        print("Task configuration loaded successfully!")
+        print("Simulator: {}".format(task_config.simulator))
+        print("Design path: {}".format(task_config.design_path))
+        print("Analysis types: {}".format(list(task_config.analyses.keys())))
     except Exception as e:
-        print(f"Configuration loading failed: {e}")
+        print("Configuration loading failed: {}".format(e))

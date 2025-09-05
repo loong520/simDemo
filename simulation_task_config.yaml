@@ -1,0 +1,16 @@
+# 仿真任务配置文件 (YAML格式)
+# 包含本次仿真任务信息，并指定使用的testbench文件
+
+# 基本仿真配置
+simulation:
+  project_dir: "/home/IC/EDA/Test" # 项目目录路径
+  library_name: "test" # 库名称
+  cell_name: "inv" # 单元模块名称
+  design_type: "schematic" # 设计类型 (schematic, layout)
+  simulator: "spectre" # 仿真器类型 (spectre, virtuoso)
+  simulation_path: "/home/IC/simulation" # 仿真根路径
+  temperature: 27.0 # 仿真温度 (摄氏度)
+  supply_voltage: 1.8 # 电源电压 (V)
+
+# Testbench配置文件路径
+testbench_config: "testbenches/testbench_config.yaml"

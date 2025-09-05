@@ -12,14 +12,14 @@ import tempfile
 import shutil
 
 # 添加项目根目录到Python路径
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from config import SimulationConfig, ConfigReader, load_config
+    from config import SimulationConfig, ConfigReader, load_system_config, load_task_config
     from ocean_generator import OceanScriptGenerator
     from simulator import SimulationExecutor
-    from main import SimulationManager
+    from simulation_manager import SimulationManager
 except ImportError as e:
     print(f"Module import failed: {e}")
     print("Please ensure all necessary Python packages are installed: pip install -r requirements.txt")
@@ -33,25 +33,59 @@ def test_config_module():
     print("=" * 50)
     
     try:
-        # 测试YAML配置文件
-        yaml_config_file = project_root / "simulation_config.yaml"
-        if yaml_config_file.exists():
-            print("Testing YAML configuration file reading...")
-            config = load_config(str(yaml_config_file))
-            print(f"✓ YAML configuration loaded successfully: {config.project_name}")
-        else:
-            print("⚠ YAML configuration file does not exist, skipping test")
-        # 测试编程方式创建配置
-        print("Testing programmatic configuration creation...")
-        test_config = SimulationConfig(
-            project_dir="/test/path",
-            library_name="test_lib", 
-            cell_name="test_cell",
-            simulation_path="/test/path/sim",
-            simulator="spectre",
-            temperature=27.0
-        )
-        print(f"✓ Programmatic configuration created successfully: {test_config.project_name}")
+        # 测试系统配置
+        print("Testing system configuration loading...")
+        system_config = load_system_config()
+        print(f"✓ System configuration loaded successfully: Server URL = {system_config.server.url}")
+        
+        # 测试任务配置
+        print("Testing task configuration loading...")
+        # 创建一个临时的任务配置文件用于测试
+        with tempfile.TemporaryDirectory() as temp_dir:
+            task_config_file = Path(temp_dir) / "test_task_config.yaml"
+            testbench_config_file = Path(temp_dir) / "test_testbench_config.yaml"
+            
+            # 写入测试testbench配置
+            testbench_content = """
+models:
+  files: []
+
+analyses:
+  tran:
+    stop: "1n"
+
+outputs:
+  save_nodes:
+    - "/vout"
+    
+variables: {}
+
+initial_conditions: {}
+
+post_processing: {}
+"""
+            with open(testbench_config_file, 'w') as f:
+                f.write(testbench_content)
+            
+            # 写入测试任务配置
+            task_content = f"""
+simulation:
+  project_dir: "/test/path"
+  library_name: "test_lib"
+  cell_name: "test_cell"
+  design_type: "schematic"
+  simulator: "spectre"
+  simulation_path: "/test/path/sim"
+  temperature: 27.0
+  supply_voltage: 1.8
+
+testbench_config: "{testbench_config_file}"
+"""
+            with open(task_config_file, 'w') as f:
+                f.write(task_content)
+            
+            task_config = load_task_config(str(task_config_file))
+            print(f"✓ Task configuration loaded successfully: {task_config.project_name}")
         
         return True
         
@@ -68,14 +102,15 @@ def test_ocean_generator():
     
     try:
         # 创建测试配置
-        test_config = SimulationConfig(
-            project_dir="/test/design",
-            library_name="test_lib",
-            cell_name="test_cell", 
-            simulation_path="/test/design/sim",
-            simulator="spectre",
-            temperature=27.0
-        )
+        test_config = SimulationConfig()
+        test_config.project_dir = "/test/design"
+        test_config.library_name = "test_lib"
+        test_config.cell_name = "test_cell"
+        test_config.simulation_path = "/test/design/sim"
+        test_config.simulator = "spectre"
+        test_config.temperature = 27.0
+        test_config.analyses = {"tran": {"stop": "1n"}}
+        test_config.save_nodes = ["/vout"]
         
         # 测试Ocean脚本生成
         print("Generating Ocean script...")
@@ -86,10 +121,7 @@ def test_ocean_generator():
         required_elements = [
             "simulator( 'spectre )",
             "design(",
-            "modelFile(",
             "analysis('tran",
-            "analysis('dc",
-            "desVar(",
             "save(",
             "temp( 27.0 )",
             "run()"
@@ -132,15 +164,14 @@ def test_simulator():
     
     try:
         # 创建测试配置
-        test_config = SimulationConfig(
-            project_dir="/test",
-            library_name="test_lib",
-            cell_name="test_cell",
-            simulation_path="/test/sim", 
-            simulator="spectre",
-            analyses={"tran": {"stop": "1n"}},
-            save_nodes=["/vout"]
-        )
+        test_config = SimulationConfig()
+        test_config.project_dir = "/test"
+        test_config.library_name = "test_lib"
+        test_config.cell_name = "test_cell"
+        test_config.simulation_path = "/test/sim"
+        test_config.simulator = "spectre"
+        test_config.analyses = {"tran": {"stop": "1n"}}
+        test_config.save_nodes = ["/vout"]
         
         # 创建临时工作目录
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -194,16 +225,10 @@ def test_main_module():
         # 创建临时配置文件
         with tempfile.TemporaryDirectory() as temp_dir:
             config_file = Path(temp_dir) / "test_config.yaml"
+            testbench_file = Path(temp_dir) / "test_testbench.yaml"
             
-            # 写入测试配置
-            config_content = """
-simulation:
-  project_name: "test_main_module"
-  simulator: "spectre"
-  design_path: "/test/design"
-  results_dir: "./test_results"
-  temperature: 27.0
-
+            # 写入测试testbench配置
+            testbench_content = """
 analyses:
   tran:
     stop: "1n"
@@ -211,6 +236,33 @@ analyses:
 outputs:
   save_nodes:
     - "/vout"
+    
+models:
+  files: []
+  
+variables: {}
+
+initial_conditions: {}
+
+post_processing: {}
+"""
+            
+            with open(testbench_file, 'w') as f:
+                f.write(testbench_content)
+            
+            # 写入测试任务配置
+            config_content = f"""
+simulation:
+  project_dir: "/test/design"
+  library_name: "test_lib"
+  cell_name: "test_cell"
+  design_type: "schematic"
+  simulator: "spectre"
+  simulation_path: "/test/design/sim"
+  temperature: 27.0
+  supply_voltage: 1.8
+
+testbench_config: "{testbench_file}"
 """
             
             with open(config_file, 'w') as f:
@@ -252,19 +304,54 @@ def test_integration():
     print("=" * 50)
     
     try:
-        # 使用示例配置文件进行完整流程测试
-        yaml_config = project_root / "simulation_config.yaml"
-        
-        if not yaml_config.exists():
-            print("⚠ Example configuration file does not exist, skipping integration test")
-            return True
-        
-        print("Executing complete simulation workflow...")
-        
-        # 创建临时工作目录
+        # 创建测试配置文件
         with tempfile.TemporaryDirectory() as temp_dir:
+            task_config_file = Path(temp_dir) / "integration_test_task.yaml"
+            testbench_config_file = Path(temp_dir) / "integration_test_testbench.yaml"
+            
+            # 写入测试testbench配置
+            testbench_content = """
+models:
+  files: []
+
+analyses:
+  tran:
+    stop: "1n"
+
+outputs:
+  save_nodes:
+    - "/vout"
+    
+variables: {}
+
+initial_conditions: {}
+
+post_processing: {}
+"""
+            with open(testbench_config_file, 'w') as f:
+                f.write(testbench_content)
+            
+            # 写入测试任务配置
+            task_content = f"""
+simulation:
+  project_dir: "/test/integration"
+  library_name: "test_lib"
+  cell_name: "test_cell"
+  design_type: "schematic"
+  simulator: "spectre"
+  simulation_path: "/test/integration/sim"
+  temperature: 27.0
+
+testbench_config: "{testbench_config_file}"
+"""
+            
+            with open(task_config_file, 'w') as f:
+                f.write(task_content)
+            
+            print("Executing complete simulation workflow...")
+            
             # 创建仿真管理器
-            manager = SimulationManager(str(yaml_config), temp_dir)
+            manager = SimulationManager(str(task_config_file), temp_dir)
             
             # 生成脚本
             scripts = manager.generate_complete_scripts()

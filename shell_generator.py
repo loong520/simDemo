@@ -178,19 +178,6 @@ class ShellScriptGenerator:
             'ocean_cmd': ocean_cmd,
             'launch_args': launch_args
         }
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
     
     def generate_complete_simulation_package(self, 
                                            script_type: str = "ocean",
