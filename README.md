@@ -5,8 +5,8 @@
 ## 功能特性
 
 - 📋 **配置文件驱动**: 支持 YAML 格式的配置文件
-- 🔧 **多仿真器支持**: 支持 Spectre、HSPICE、Eldo 等主流仿真器
-- 📜 **自动脚本生成**: 生成标准 Ocean 脚本和 Python skillbridge 脚本
+- 🔧 **多仿真器支持**: 支持 Spectre、HSPICE 等主流仿真器
+- 📜 **自动脚本生成**: 生成标准 Ocean 脚本
 - 🚀 **一键执行**: 命令行和交互式界面支持
 - 📊 **结果管理**: 自动收集和整理仿真结果
 - 🔍 **状态监控**: 实时监控仿真进度和状态
@@ -19,11 +19,24 @@ simDemo/
 ├── main.py                      # 主程序入口
 ├── config.py                    # 配置文件读取模块
 ├── ocean_generator.py           # Ocean脚本生成器
+├── shell_generator.py           # Shell脚本生成器
 ├── simulator.py                 # 仿真执行器
-├── test_demo.py                 # 功能测试脚本
+├── simulation_manager.py         # 仿真任务管理器
+├── project_manager.py           # 项目管理器
+├── eda_tool_manager.py          # EDA工具管理器
+├── pdk_manager.py               # PDK管理器
+├── service_request.py           # 服务请求基类
+├── demo.py                      # 功能演示脚本
+├── install.py                   # 安装脚本
 ├── requirements.txt             # Python依赖包
-├── simulation_config.yaml       # YAML配置文件示例
-└── README.md                    # 项目说明文档
+├── simulation_config.yaml       # 系统配置文件示例
+├── simulation_task_config.yaml  # 仿真任务配置文件示例
+├── system_config.yaml           # 系统配置文件示例
+├── README.md                    # 项目说明文档
+├── conf/                        # 配置文件目录
+├── templates/                   # 模板文件目录
+├── testbenches/                # Testbench配置文件目录
+└── tests/                      # 测试文件目录
 ```
 
 ## 安装依赖
@@ -49,29 +62,44 @@ pip install -r requirements.txt
 复制并修改示例配置文件：
 
 ```bash
-cp simulation_config.yaml my_simulation.yaml
+cp simulation_task_config.yaml my_task.yaml
 ```
 
 编辑配置文件，修改以下关键参数：
 
-- `design_path`: 您的电路设计 netlist 路径
-- `model_files`: 工艺模型文件路径
-- `analyses`: 需要运行的分析类型
-- `save_nodes`: 需要保存的信号节点
+- `simulation.project_dir`: 您的项目目录路径
+- `simulation.library_name`: 库名称
+- `simulation.cell_name`: 单元模块名称
+- `testbench_config`: testbench 配置文件路径
 
 ### 2. 运行仿真
 
 #### 命令行模式
 
 ```bash
-# 交互式模式
-python main.py -c my_simulation.yaml
+# 查看所有可用命令
+python main.py -h
 
-# 仅生成脚本
-python main.py -c my_simulation.yaml -g
+# 运行仿真任务
+python main.py simulation run-task -c my_task.yaml
 
-# 运行Ocean仿真
-python main.py -c my_simulation.yaml -r ocean
+# 创建testbench
+python main.py simulation create-testbench --name my_testbench --config-file testbenches/testbench_config.yaml --description "My testbench"
+
+# 列出所有testbench
+python main.py simulation list-testbench
+
+# 查询所有仿真任务运行状态
+python main.py simulation show-task
+
+# EDA工具管理命令
+python main.py eda-tool -h
+
+# PDK管理命令
+python main.py pdk -h
+
+# 项目管理命令
+python main.py project -h
 ```
 
 #### 交互式模式
@@ -84,53 +112,143 @@ python main.py -i
 
 ### 3. 查看结果
 
-仿真完成后，结果将保存在配置文件中指定的`results_dir`目录中。
+仿真完成后，结果将保存在配置文件中指定的目录中。
 
 ## 配置文件说明
 
-### YAML 格式配置文件
+### 仿真任务配置文件 (simulation_task_config.yaml)
 
 ```yaml
 # 基本仿真配置
 simulation:
-  project_name: "my_project" # 项目名称
-  simulator: "spectre" # 仿真器类型
-  design_path: "/path/to/netlist" # 设计文件路径
-  results_dir: "./results" # 结果目录
+  project_dir: "/home/IC/EDA/Test" # 项目目录路径
+  library_name: "test" # 库名称
+  cell_name: "inv" # 单元模块名称
+  design_type: "schematic" # 设计类型 (schematic, layout)
+  simulator: "spectre" # 仿真器类型 (spectre, virtuoso)
+  simulation_path: "/home/IC/simulation" # 仿真根路径
 
-# 模型文件
+# Testbench配置文件路径
+testbench_config: "testbenches/testbench_config.yaml"
+```
+
+### Testbench 配置文件 (testbench_config.yaml)
+
+```yaml
+# 模型文件配置
 models:
   files:
-    - ["/path/to/model1.scs", ""] # [文件路径, 工艺角]
-    - ["/path/to/model2.scs", "tt"]
+    - ["/path/to/model1.scs", "tt"] # [模型文件路径, 工艺角]
+    - ["/path/to/model2.scs", ""]
 
-# 分析类型
+# 分析配置
 analyses:
-  tran: # 瞬态分析
-    stop: "10n" # 停止时间
-    step: "1p" # 时间步长
-  dc: # DC分析
-    saveOppoint: "t" # 保存工作点
-
-# 设计变量
-variables:
-  vdd: 1.8
-  temp_coeff: 1e-3
-
-# 保存节点
-outputs:
-  save_nodes:
-    - "/vout"
-    - "/vin"
+  # 瞬态分析
+  tran:
+    start: "0"
+    stop: "10u" # 仿真停止时间
+    step: "10n" # 仿真步长
+    errpreset: "conservative" # 高精度
 
 # 环境配置
 environment:
-  temperature: 27.0 # 仿真温度
-  supply_voltage: 1.8 # 电源电压
+  temperature: 27.0 # 仿真温度 (摄氏度)
+  supply_voltage: 1.8 # 电源电压 (V)
+
+# 设计变量
+variables:
+  vdd: 1.8 # 电源电压
+
+# 输出配置
+outputs:
+  save_nodes: # 需要保存的节点
+    - "/vout" # 输出电压
+    - "/vin" # 输入电压
 
 # 初始条件
 initial_conditions:
-  "/vout": 0.9
+  "/vout": 0.9 # 输出节点初始电压
+```
+
+## 命令行接口
+
+### 仿真管理命令
+
+```bash
+# 运行仿真任务
+python main.py simulation run-task -c <config_file>
+
+# 创建testbench
+python main.py simulation create-testbench --name <name> --config-file <config_file> [--description <description>]
+
+# 删除testbench
+python main.py simulation delete-testbench --name <name>
+
+# 更新testbench
+python main.py simulation update-testbench --name <name> [--config-file <config_file>] [--description <description>]
+
+# 列出所有testbench
+python main.py simulation list-testbench
+
+# 查询所有仿真任务运行状态
+python main.py simulation show-task [--project-name <project>] [--library-name <library>] [--cell-name <cell>]
+```
+
+### EDA 工具管理命令
+
+```bash
+# 创建EDA工具
+python main.py eda-tool create --name <name> --version <version> --launch-command <command> --vendor <vendor> [--env-var <var>]
+
+# 查询EDA工具信息
+python main.py eda-tool get --tool-id <id>
+
+# 列出所有EDA工具
+python main.py eda-tool list
+
+# 删除EDA工具
+python main.py eda-tool delete --tool-id <id>
+
+# 更新EDA工具
+python main.py eda-tool update --tool-id <id> [--name <name>] [--version <version>] [--launch-command <command>] [--vendor <vendor>] [--env-var <var>]
+```
+
+### PDK 管理命令
+
+```bash
+# 创建PDK
+python main.py pdk create --name <name> --version <version> --process <process> --vendor <vendor> --root-path <path> --drc-path <path> --lvs-path <path> --xrc-path <path> --spectre-path <path> --hspice-path <path>
+
+# 查询PDK信息
+python main.py pdk get --pdk-id <id>
+
+# 列出所有PDK
+python main.py pdk list
+
+# 删除PDK
+python main.py pdk delete --pdk-id <id>
+
+# 更新PDK
+python main.py pdk update --pdk-id <id> [--name <name>] [--version <version>] [--process <process>] [--vendor <vendor>] [--root-path <path>] [--drc-path <path>] [--lvs-path <path>] [--xrc-path <path>] [--spectre-path <path>] [--hspice-path <path>]
+```
+
+### 项目管理命令
+
+```bash
+# 创建项目
+python main.py project create --name <name> [--description <description>]
+
+# 配置项目成员
+python main.py project members --project-id <id> --members <members_json>
+
+# 配置项目目录
+python main.py project directory --project-id <id> --path <path>
+
+# 配置项目PDK目录
+python main.py project pdk --project-id <id> --path <path>
+
+# 配置项目库和单元
+python main.py project libraries --project-id <id> --libraries <libraries_json>
 ```
 
 ## 高级功能
@@ -138,52 +256,45 @@ initial_conditions:
 ### 1. 自定义仿真流程
 
 ```python
-from config import load_config
-from simulator import SimulationExecutor
+from config import ConfigReader
+from simulation_manager import SimulationManager
 
 # 加载配置
-config = load_config("my_config.yaml")
+reader = ConfigReader("my_task.yaml")
+config = reader.load_task_config("my_task.yaml")
 
-# 创建执行器
-executor = SimulationExecutor(config, "./my_work_dir")
+# 创建仿真管理器
+manager = SimulationManager()
+manager.load_simulation_configuration("my_task.yaml")
 
-# 准备仿真
-executor.prepare_simulation()
-
-# 运行Ocean仿真
-success, output = executor.run_ocean_simulation()
-
-# 收集结果
-results = executor.collect_results()
+# 运行仿真任务
+manager.run_simulation_task("my_task.yaml")
 ```
 
 ### 2. 批量仿真
 
-```
+```python
 from pathlib import Path
-from main import SimulationManager
+from simulation_manager import SimulationManager
 
 # 批量处理多个配置文件
-config_files = Path("./configs").glob("*.yaml")
+config_files = Path("./tasks").glob("*.yaml")
 
 for config_file in config_files:
     manager = SimulationManager()
     manager.load_simulation_configuration(str(config_file))
-    manager.run_simulation("ocean")
+    manager.run_simulation_task(str(config_file))
 ```
 
 ### 3. 脚本生成和自定义
 
 ```python
-from config import SimulationConfig
+from config import ConfigReader
 from ocean_generator import OceanScriptGenerator
 
-# 创建配置
-config = SimulationConfig(
-    project_name="custom_sim",
-    simulator="spectre",
-    # ... 其他参数
-)
+# 创建配置读取器
+reader = ConfigReader("my_task.yaml")
+config = reader.load_task_config("my_task.yaml")
 
 # 生成脚本
 generator = OceanScriptGenerator(config)
@@ -197,7 +308,6 @@ generator.save_script("my_simulation.ocn")
 
 - **Cadence Spectre**: 默认支持，推荐使用
 - **Synopsys HSPICE**: 基本支持
-- **Mentor Eldo**: 基本支持
 
 ## 支持的分析类型
 

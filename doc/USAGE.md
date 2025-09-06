@@ -40,7 +40,7 @@ python main.py -c simulation_config.yaml -g
 
 ### YAML 格式示例
 
-```yaml
+```
 simulation:
   project_name: "my_amplifier"
   simulator: "spectre"
@@ -78,7 +78,7 @@ outputs:
 | 配置项        | 说明                      | 示例                        |
 | ------------- | ------------------------- | --------------------------- |
 | `design_path` | 电路设计 netlist 文件路径 | `/path/to/circuit.scs`      |
-| `simulator`   | 仿真器类型                | `spectre`, `hspice`, `eldo` |
+| `simulator`   | 仿真器类型                | `spectre`, `hspice`         |
 | `analyses`    | 分析类型和参数            | `tran`, `dc`, `ac`, `noise` |
 | `model_files` | 工艺模型文件              | `[文件路径, 工艺角]`        |
 | `save_nodes`  | 需要保存的信号节点        | `/vout`, `/vin`             |
