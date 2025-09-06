@@ -30,16 +30,16 @@ def main():
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
     
     # EDA工具管理命令
-    eda_tool_manager.add_eda_tool_commands(subparsers)
+    eda_tool_manager.register_eda_tool_commands(subparsers)
     
     # PDK管理命令
-    pdk_manager.add_pdk_commands(subparsers)
+    pdk_manager.register_pdk_commands(subparsers)
     
     # 项目管理命令
-    project_manager.add_project_commands(subparsers)
+    project_manager.register_project_commands(subparsers)
     
     # 仿真命令
-    simulation_manager.add_simulation_arguments(subparsers)
+    simulation_manager.register_simulation_commands(subparsers)
     
     args = parser.parse_args()
     

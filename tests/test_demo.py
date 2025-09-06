@@ -35,7 +35,8 @@ def test_config_module():
     try:
         # 测试系统配置
         print("Testing system configuration loading...")
-        system_config = load_system_config()
+        reader = ConfigReader()
+        system_config = reader.load_system_config()
         print(f"✓ System configuration loaded successfully: Server URL = {system_config.server.url}")
         
         # 测试任务配置
@@ -60,6 +61,10 @@ outputs:
     
 variables: {}
 
+environment:
+  temperature: 27.0
+  supply_voltage: 1.8
+
 initial_conditions: {}
 
 post_processing: {}
@@ -76,15 +81,14 @@ simulation:
   design_type: "schematic"
   simulator: "spectre"
   simulation_path: "/test/path/sim"
-  temperature: 27.0
-  supply_voltage: 1.8
 
 testbench_config: "{testbench_config_file}"
 """
             with open(task_config_file, 'w') as f:
                 f.write(task_content)
             
-            task_config = load_task_config(str(task_config_file))
+            reader = ConfigReader(str(task_config_file))
+            task_config = reader.load_task_config(str(task_config_file))
             print(f"✓ Task configuration loaded successfully: {task_config.project_name}")
         
         return True
@@ -270,7 +274,9 @@ testbench_config: "{testbench_file}"
             
             # 测试仿真管理器
             print("Creating simulation manager...")
-            manager = SimulationManager(str(config_file), temp_dir)
+            manager = SimulationManager()
+            manager.load_simulation_configuration(str(config_file))
+            manager.work_dir = temp_dir
             
             if manager.config:
                 print("✓ Simulation manager created successfully")
@@ -351,7 +357,9 @@ testbench_config: "{testbench_config_file}"
             print("Executing complete simulation workflow...")
             
             # 创建仿真管理器
-            manager = SimulationManager(str(task_config_file), temp_dir)
+            manager = SimulationManager()
+            manager.load_simulation_configuration(str(task_config_file))
+            manager.work_dir = temp_dir
             
             # 生成脚本
             scripts = manager.generate_complete_scripts()

@@ -9,8 +9,6 @@ simulation:
   design_type: "schematic" # 设计类型 (schematic, layout)
   simulator: "spectre" # 仿真器类型 (spectre, virtuoso)
   simulation_path: "/home/IC/simulation" # 仿真根路径
-  temperature: 27.0 # 仿真温度 (摄氏度)
-  supply_voltage: 1.8 # 电源电压 (V)
 
 # Testbench配置文件路径
 testbench_config: "testbenches/testbench_config.yaml"

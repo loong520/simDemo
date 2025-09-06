@@ -39,16 +39,19 @@ class ProjectManager(ServiceRequest):
         Args:
             name: 项目名称
             description: 项目描述
-            owner: 项目所有者
+            owner: 项目所有者（可选，默认为当前用户）
             
         Returns:
             创建的项目信息
         """
         data = {
             "name": name,
-            "description": description,
-            "owner": owner
+            "description": description
         }
+        
+        # 如果提供了owner，则添加到请求数据中
+        if owner:
+            data["owner"] = owner
         
         return self._make_request('POST', '/api/projects', data)
     
@@ -165,7 +168,7 @@ class ProjectManager(ServiceRequest):
         return self._make_request('DELETE', f'/api/projects/{project_id}')
 
 
-def add_project_commands(subparsers):
+def register_project_commands(subparsers):
     """添加项目管理命令"""
     # 项目管理父命令
     project_parser = subparsers.add_parser('project', help='Project management')
@@ -177,7 +180,6 @@ def add_project_commands(subparsers):
     create_parser = project_subparsers.add_parser('create', help='Create a new project')
     create_parser.add_argument('--name', required=True, help='Project name')
     create_parser.add_argument('--description', help='Project description')
-    create_parser.add_argument('--owner', help='Project owner')
     
     # 项目成员配置命令
     members_parser = project_subparsers.add_parser('members', help='Configure project members')
@@ -220,7 +222,8 @@ def handle_project_command(args):
     """处理项目管理命令"""
     try:
         # 从系统配置文件读取服务器配置
-        config_obj = config.load_system_config()
+        reader = config.ConfigReader()
+        config_obj = reader.load_system_config()
         server_url = config_obj.server.url
         api_key = config_obj.server.api_key
         
@@ -233,10 +236,10 @@ def handle_project_command(args):
         
         # 根据不同的操作调用相应的函数
         if args.project_action == 'create':
+            # 不再传递owner参数，让服务端自动设置创建者为owner
             result = manager.create_project(
                 name=args.name,
-                description=args.description or "",
-                owner=args.owner or ""
+                description=args.description or ""
             )
             print("Project created successfully: {}".format(result))
         elif args.project_action == 'members':

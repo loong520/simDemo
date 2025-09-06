@@ -151,7 +151,7 @@ class PDKManager(ServiceRequest):
         return self._make_request('PUT', f'/api/pdks/{pdk_id}', data)
 
 
-def add_pdk_commands(subparsers):
+def register_pdk_commands(subparsers):
     """添加PDK管理命令"""
     # PDK管理父命令
     pdk_parser = subparsers.add_parser('pdk', help='PDK management')
@@ -211,7 +211,7 @@ def handle_pdk_command(args):
             sys.exit(1)
         
         # 从配置文件读取服务器配置
-        config_obj = config.load_config(str(config_path))
+        config_obj = config.load_task_config(str(config_path))
         server_url = config_obj.server.url
         api_key = config_obj.server.api_key
         

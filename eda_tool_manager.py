@@ -122,7 +122,7 @@ class EDAToolManager(ServiceRequest):
         return self._make_request('PUT', f'/api/eda-tools/{tool_id}', data)
 
 
-def add_eda_tool_commands(subparsers):
+def register_eda_tool_commands(subparsers):
     """添加EDA工具管理命令"""
     # EDA工具管理父命令
     eda_tool_parser = subparsers.add_parser('eda-tool', help='EDA Tool management')
@@ -172,7 +172,7 @@ def handle_eda_tool_command(args):
             sys.exit(1)
         
         # 从配置文件读取服务器配置
-        config_obj = config.load_config(str(config_path))
+        config_obj = config.load_task_config(str(config_path))
         server_url = config_obj.server.url
         api_key = config_obj.server.api_key
         

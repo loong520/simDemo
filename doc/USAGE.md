@@ -1,8 +1,9 @@
-# 芯片仿真自动化Demo - 使用指南
+# 芯片仿真自动化 Demo - 使用指南
 
 ## 快速开始
 
 ### 1. 环境设置
+
 ```bash
 # 检查和安装依赖
 python install.py
@@ -17,11 +18,13 @@ python test_demo.py
 ### 2. 基本使用
 
 #### 交互式模式（推荐新手）
+
 ```bash
 python main.py -i
 ```
 
 #### 命令行模式
+
 ```bash
 # 使用示例配置运行Ocean仿真
 python main.py -c simulation_config.yaml -r ocean
@@ -35,14 +38,14 @@ python main.py -c simulation_config.yaml -g
 
 ## 配置文件详解
 
-### YAML格式示例
+### YAML 格式示例
+
 ```yaml
 simulation:
   project_name: "my_amplifier"
   simulator: "spectre"
   design_path: "/path/to/your/netlist.scs"
   results_dir: "./sim_results"
-  temperature: 27.0
 
 models:
   files:
@@ -56,6 +59,10 @@ analyses:
   dc:
     saveOppoint: "t"
 
+environment:
+  temperature: 27.0 # 仿真温度
+  supply_voltage: 1.8 # 电源电压
+
 variables:
   vdd: 1.8
   load_cap: 100e-15
@@ -68,13 +75,13 @@ outputs:
 
 ### 关键配置项说明
 
-| 配置项 | 说明 | 示例 |
-|--------|------|------|
-| `design_path` | 电路设计netlist文件路径 | `/path/to/circuit.scs` |
-| `simulator` | 仿真器类型 | `spectre`, `hspice`, `eldo` |
-| `analyses` | 分析类型和参数 | `tran`, `dc`, `ac`, `noise` |
-| `model_files` | 工艺模型文件 | `[文件路径, 工艺角]` |
-| `save_nodes` | 需要保存的信号节点 | `/vout`, `/vin` |
+| 配置项        | 说明                      | 示例                        |
+| ------------- | ------------------------- | --------------------------- |
+| `design_path` | 电路设计 netlist 文件路径 | `/path/to/circuit.scs`      |
+| `simulator`   | 仿真器类型                | `spectre`, `hspice`, `eldo` |
+| `analyses`    | 分析类型和参数            | `tran`, `dc`, `ac`, `noise` |
+| `model_files` | 工艺模型文件              | `[文件路径, 工艺角]`        |
+| `save_nodes`  | 需要保存的信号节点        | `/vout`, `/vin`             |
 
 ## 输出文件说明
 
@@ -95,17 +102,20 @@ sim_work/
 ## 高级功能
 
 ### 1. 批量仿真
-```python
+
+```
 from pathlib import Path
 from main import SimulationManager
 
 # 批量处理多个配置文件
 for config_file in Path("configs").glob("*.yaml"):
-    manager = SimulationManager(str(config_file))
+    manager = SimulationManager()
+    manager.load_simulation_configuration(str(config_file))
     manager.run_simulation()
 ```
 
 ### 2. 自定义脚本生成
+
 ```python
 from config import SimulationConfig
 from ocean_generator import OceanScriptGenerator
@@ -120,7 +130,8 @@ generator = OceanScriptGenerator(config)
 script = generator.generate_script()
 ```
 
-### 3. Python API使用
+### 3. Python API 使用
+
 ```python
 from config import load_config
 from simulator import run_simulation
@@ -139,38 +150,46 @@ if success:
 ### 常见错误及解决方案
 
 1. **模块导入错误**
+
    ```
    ModuleNotFoundError: No module named 'yaml'
    ```
+
    解决: `python install.py` 或 `pip install pyyaml`
 
 2. **配置文件格式错误**
+
    ```
    配置文件解析错误: ...
    ```
-   解决: 检查YAML语法，确保缩进正确
+
+   解决: 检查 YAML 语法，确保缩进正确
 
 3. **设计文件路径错误**
+
    ```
    设计文件不存在: /path/to/design
    ```
+
    解决: 检查配置文件中的路径是否正确
 
 4. **仿真器环境问题**
    ```
    仿真器环境检查失败
    ```
-   解决: 确保Cadence等仿真工具已正确安装并设置环境变量
+   解决: 确保 Cadence 等仿真工具已正确安装并设置环境变量
 
 ### 调试技巧
 
 1. **查看详细日志**
+
    ```bash
    # 日志文件位置
    ./.sim_work/logs/simulation_*.log
    ```
 
 2. **测试配置文件**
+
    ```bash
    python -c "from config import load_config; print(load_config('your_config.yaml'))"
    ```
@@ -185,6 +204,7 @@ if success:
 ### 添加新仿真器支持
 
 1. 在 `simulator.py` 中添加新仿真器命令：
+
 ```python
 if simulator == 'your_simulator':
     cmd = ['your_simulator', '-args', self.ocean_script_path]
@@ -195,6 +215,7 @@ if simulator == 'your_simulator':
 ### 自定义分析类型
 
 1. 在配置文件中定义新分析：
+
 ```yaml
 analyses:
   custom_analysis:
@@ -207,6 +228,7 @@ analyses:
 ### 后处理扩展
 
 可以在 `post_processing` 配置中定义：
+
 - 自定义绘图参数
 - 数据导出格式
 - 结果文件处理逻辑
@@ -214,16 +236,19 @@ analyses:
 ## 最佳实践
 
 1. **配置管理**
+
    - 为不同的项目创建单独的配置文件
    - 使用版本控制管理配置文件
    - 定期备份重要的仿真配置
 
 2. **性能优化**
+
    - 合理设置时间步长
    - 选择适当的仿真精度
    - 使用快速模型进行初步验证
 
 3. **结果管理**
+
    - 定期清理临时文件
    - 归档重要的仿真结果
    - 使用描述性的项目名称
@@ -244,4 +269,4 @@ analyses:
 
 ---
 
-**注意**: 本工具需要合法的EDA工具许可证才能进行实际仿真。
+**注意**: 本工具需要合法的 EDA 工具许可证才能进行实际仿真。

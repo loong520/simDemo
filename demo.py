@@ -19,19 +19,18 @@ def demo_config_loading():
     print("=" * 60)
     
     try:
-        from config import SimulationConfig, load_config
+        from config import SimulationConfig, ConfigReader, load_task_config
         
         # 方法1: 编程方式创建配置
         print("Method 1: Programmatic Configuration Creation")
-        config = SimulationConfig(
-            project_dir="/demo/path",
-            library_name="demo_lib",
-            cell_name="amplifier",
-            simulation_path="/demo/path/sim",
-            simulator="spectre",
-            temperature=27.0,
-            supply_voltage=1.8
-        )
+        config = SimulationConfig()
+        config.project_dir = "/demo/path"
+        config.library_name = "demo_lib"
+        config.cell_name = "amplifier"
+        config.simulation_path = "/demo/path/sim"
+        config.simulator = "spectre"
+        config.temperature = 27.0
+        config.supply_voltage = 1.8
         
         config.analyses = {
             "tran": {"stop": "10n", "step": "1p"},
@@ -56,7 +55,8 @@ def demo_config_loading():
         yaml_config_file = project_root / "simulation_config.yaml"
         if yaml_config_file.exists():
             print("\nMethod 2: Load Configuration from YAML File")
-            yaml_config = load_config(str(yaml_config_file))
+            reader = config.ConfigReader(str(yaml_config_file))
+            yaml_config = reader.load_task_config(str(yaml_config_file))
             print(f"✅ Successfully loaded from YAML: {yaml_config.project_name}")
         else:
             print("\n⚠️ YAML configuration file does not exist, skipping demo")
@@ -117,13 +117,12 @@ def demo_simulation_manager():
         # 创建测试配置
         from config import SimulationConfig
         
-        test_config = SimulationConfig(
-            project_dir="/demo/test",
-            library_name="demo_lib",
-            cell_name="test_cell",
-            simulation_path="/demo/test/sim",
-            simulator="spectre"
-        )
+        test_config = SimulationConfig()
+        test_config.project_dir = "/demo/test"
+        test_config.library_name = "demo_lib"
+        test_config.cell_name = "test_cell"
+        test_config.simulation_path = "/demo/test/sim"
+        test_config.simulator = "spectre"
         
         test_config.analyses = {"tran": {"stop": "1n"}}
         test_config.save_nodes = ["/vout"]
@@ -139,7 +138,8 @@ def demo_simulation_manager():
         
         # 演示仿真管理器
         print("\nCreating simulation manager...")
-        manager = SimulationManager(work_dir="./demo_manager_work")
+        manager = SimulationManager()
+        manager.work_dir = "./demo_manager_work"
         
         # 加载配置
         manager.config = test_config
@@ -170,15 +170,12 @@ def demo_complete_workflow():
         # 创建完整的仿真配置
         from config import SimulationConfig
         
-        complete_config = SimulationConfig(
-            project_dir="/demo/complete",
-            library_name="demo_lib",
-            cell_name="amplifier",
-            simulation_path="/demo/complete/sim",
-            simulator="spectre",
-            temperature=27.0,
-            supply_voltage=1.8
-        )
+        complete_config = SimulationConfig()
+        complete_config.project_dir = "/demo/complete"
+        complete_config.library_name = "demo_lib"
+        complete_config.cell_name = "amplifier"
+        complete_config.simulation_path = "/demo/complete/sim"
+        complete_config.simulator = "spectre"
         
         # 完整的分析配置
         complete_config.analyses = {
@@ -253,7 +250,8 @@ def demo_complete_workflow():
         
         # 创建管理器并生成脚本
         print("\nCreating simulation manager and generating scripts...")
-        manager = SimulationManager(work_dir="./complete_demo_work")
+        manager = SimulationManager()
+        manager.work_dir = "./complete_demo_work"
         manager.config = complete_config
         
         scripts = manager.generate_complete_scripts("./complete_demo_scripts")
@@ -345,5 +343,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 

@@ -1,12 +1,12 @@
-# 芯片仿真自动化Demo
+# 芯片仿真自动化 Demo
 
-一个基于Python的芯片模拟仿真自动化工具，支持从配置文件读取仿真参数，自动生成Ocean脚本和Python脚本，并执行Cadence Spectre等仿真器进行芯片电路仿真。
+一个基于 Python 的芯片模拟仿真自动化工具，支持从配置文件读取仿真参数，自动生成 Ocean 脚本和 Python 脚本，并执行 Cadence Spectre 等仿真器进行芯片电路仿真。
 
 ## 功能特性
 
-- 📋 **配置文件驱动**: 支持YAML格式的配置文件
-- 🔧 **多仿真器支持**: 支持Spectre、HSPICE、Eldo等主流仿真器
-- 📜 **自动脚本生成**: 生成标准Ocean脚本和Python skillbridge脚本
+- 📋 **配置文件驱动**: 支持 YAML 格式的配置文件
+- 🔧 **多仿真器支持**: 支持 Spectre、HSPICE、Eldo 等主流仿真器
+- 📜 **自动脚本生成**: 生成标准 Ocean 脚本和 Python skillbridge 脚本
 - 🚀 **一键执行**: 命令行和交互式界面支持
 - 📊 **结果管理**: 自动收集和整理仿真结果
 - 🔍 **状态监控**: 实时监控仿真进度和状态
@@ -28,14 +28,15 @@ simDemo/
 
 ## 安装依赖
 
-首先确保您的系统已安装Python 3.7+，然后安装必要的依赖包：
+首先确保您的系统已安装 Python 3.7+，然后安装必要的依赖包：
 
 ```bash
 pip install -r requirements.txt
 ```
 
 主要依赖包：
-- `pyyaml`: YAML配置文件解析
+
+- `pyyaml`: YAML 配置文件解析
 - `jinja2`: 模板引擎，用于生成脚本
 - `numpy`: 数值计算
 - `pandas`: 数据处理
@@ -52,7 +53,8 @@ cp simulation_config.yaml my_simulation.yaml
 ```
 
 编辑配置文件，修改以下关键参数：
-- `design_path`: 您的电路设计netlist路径
+
+- `design_path`: 您的电路设计 netlist 路径
 - `model_files`: 工艺模型文件路径
 - `analyses`: 需要运行的分析类型
 - `save_nodes`: 需要保存的信号节点
@@ -86,31 +88,29 @@ python main.py -i
 
 ## 配置文件说明
 
-### YAML格式配置文件
+### YAML 格式配置文件
 
 ```yaml
 # 基本仿真配置
 simulation:
-  project_name: "my_project"           # 项目名称
-  simulator: "spectre"                 # 仿真器类型
-  design_path: "/path/to/netlist"      # 设计文件路径
-  results_dir: "./results"             # 结果目录
-  temperature: 27.0                    # 仿真温度
-  supply_voltage: 1.8                  # 电源电压
+  project_name: "my_project" # 项目名称
+  simulator: "spectre" # 仿真器类型
+  design_path: "/path/to/netlist" # 设计文件路径
+  results_dir: "./results" # 结果目录
 
 # 模型文件
 models:
   files:
-    - ["/path/to/model1.scs", ""]      # [文件路径, 工艺角]
+    - ["/path/to/model1.scs", ""] # [文件路径, 工艺角]
     - ["/path/to/model2.scs", "tt"]
 
 # 分析类型
 analyses:
-  tran:                                # 瞬态分析
-    stop: "10n"                        # 停止时间
-    step: "1p"                         # 时间步长
-  dc:                                  # DC分析
-    saveOppoint: "t"                   # 保存工作点
+  tran: # 瞬态分析
+    stop: "10n" # 停止时间
+    step: "1p" # 时间步长
+  dc: # DC分析
+    saveOppoint: "t" # 保存工作点
 
 # 设计变量
 variables:
@@ -122,6 +122,11 @@ outputs:
   save_nodes:
     - "/vout"
     - "/vin"
+
+# 环境配置
+environment:
+  temperature: 27.0 # 仿真温度
+  supply_voltage: 1.8 # 电源电压
 
 # 初始条件
 initial_conditions:
@@ -154,7 +159,7 @@ results = executor.collect_results()
 
 ### 2. 批量仿真
 
-```python
+```
 from pathlib import Path
 from main import SimulationManager
 
@@ -162,7 +167,8 @@ from main import SimulationManager
 config_files = Path("./configs").glob("*.yaml")
 
 for config_file in config_files:
-    manager = SimulationManager(str(config_file))
+    manager = SimulationManager()
+    manager.load_simulation_configuration(str(config_file))
     manager.run_simulation("ocean")
 ```
 
@@ -196,8 +202,8 @@ generator.save_script("my_simulation.ocn")
 ## 支持的分析类型
 
 - **瞬态分析 (tran)**: 时域仿真
-- **DC分析 (dc)**: 直流工作点和扫描
-- **AC分析 (ac)**: 交流小信号分析
+- **DC 分析 (dc)**: 直流工作点和扫描
+- **AC 分析 (ac)**: 交流小信号分析
 - **噪声分析 (noise)**: 噪声分析
 - **参数扫描**: 支持多参数扫描
 
@@ -206,16 +212,19 @@ generator.save_script("my_simulation.ocn")
 ### 常见问题
 
 1. **配置文件加载失败**
+
    - 检查文件路径是否正确
-   - 确认文件格式符合YAML规范
+   - 确认文件格式符合 YAML 规范
    - 检查必要字段是否存在
 
 2. **仿真器环境问题**
+
    - 确保仿真器已正确安装并设置环境变量
-   - 检查LICENSE服务器是否正常
+   - 检查 LICENSE 服务器是否正常
    - 验证设计文件和模型文件路径
 
 3. **脚本生成错误**
+
    - 检查配置文件中的参数是否正确
    - 确认模板语法没有错误
 
@@ -253,6 +262,7 @@ python test_demo.py
 ### 自定义后处理
 
 可以通过修改`post_processing`配置来自定义结果处理逻辑，支持：
+
 - 自定义绘图
 - 数据格式转换
 - 结果文件整理
@@ -270,14 +280,15 @@ python test_demo.py
 
 ## 贡献
 
-欢迎提交Issue和Pull Request来改进此项目。
+欢迎提交 Issue 和 Pull Request 来改进此项目。
 
 ## 联系方式
 
 如果您有任何问题或建议，请通过以下方式联系：
-- 提交GitHub Issue
+
+- 提交 GitHub Issue
 - 发送邮件到项目维护者
 
 ---
 
-**注意**: 使用本工具前请确保您有合法的EDA工具License，并且熟悉相关仿真器的使用方法。
+**注意**: 使用本工具前请确保您有合法的 EDA 工具 License，并且熟悉相关仿真器的使用方法。

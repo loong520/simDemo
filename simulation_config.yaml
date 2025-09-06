@@ -76,8 +76,6 @@ simulation:
   design_type: "schematic" # 设计类型 (schematic, layout)
   simulator: "spectre" # 仿真器类型 (spectre, virtuoso)
   simulation_path: "/home/IC/simulation" # 仿真根路径
-  temperature: 27.0 # 仿真温度 (摄氏度)
-  supply_voltage: 1.8 # 电源电压 (V)
 
 # 模型文件配置
 models:
@@ -189,6 +187,11 @@ analyses:
 # 激励文件配置
 stimulus:
   files: [] # 空数组，跳过激励文件验证
+
+# 环境配置
+environment:
+  temperature: 27.0 # 仿真温度 (摄氏度)
+  supply_voltage: 1.8 # 电源电压 (V)
 
 # 设计变量
 variables:

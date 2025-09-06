@@ -27,7 +27,8 @@ def test_system_config():
     
     try:
         # 测试系统配置加载
-        system_config = config.load_system_config()
+        reader = config.ConfigReader()
+        system_config = reader.load_system_config()
         print("✓ System configuration loaded successfully")
         print("  Server URL: {}".format(system_config.server.url))
         print("  Spectre executable: {}".format(system_config.eda_tools.spectre.executable))
@@ -57,15 +58,40 @@ def test_task_config():
   design_type: "schematic"
   simulator: "spectre"
   simulation_path: "/tmp/test_simulation"
-  temperature: 27.0
-  supply_voltage: 1.8
 
 testbench_config: "testbench_config.yaml"
 """
+            
+            # 创建testbench配置文件
+            testbench_content = """models:
+  files: []
+
+analyses:
+  tran:
+    stop: "1n"
+
+environment:
+  temperature: 27.0
+  supply_voltage: 1.8
+
+outputs:
+  save_nodes:
+    - "/vout"
+    
+variables: {}
+
+initial_conditions: {}
+
+post_processing: {}
+"""
+            testbench_file = os.path.join(os.path.dirname(task_config_file), "testbench_config.yaml")
+            with open(testbench_file, 'w') as f:
+                f.write(testbench_content)
             with open(task_config_file, 'w') as f:
                 f.write(test_config_content)
         
-        task_config = config.load_task_config(task_config_file)
+        reader = config.ConfigReader(task_config_file)
+        task_config = reader.load_task_config(task_config_file)
         print("✓ Task configuration loaded successfully")
         print("  Project name: {}".format(task_config.project_name))
         print("  Simulator: {}".format(task_config.simulator))

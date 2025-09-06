@@ -28,7 +28,8 @@ def test_config_loading():
     try:
         # 测试系统配置加载
         print("1. Testing system configuration loading...")
-        system_config = config.load_system_config()
+        reader = config.ConfigReader()
+        system_config = reader.load_system_config()
         print("   ✓ System configuration loaded successfully")
         print("   Server URL: {}".format(system_config.server.url))
         print("   Spectre executable: {}".format(system_config.eda_tools.spectre.executable))
@@ -47,6 +48,10 @@ models:
 analyses:
   tran:
     stop: "1n"
+
+environment:
+  temperature: 27.0
+  supply_voltage: 1.8
 
 outputs:
   save_nodes:
@@ -70,7 +75,6 @@ simulation:
   design_type: "schematic"
   simulator: "spectre"
   simulation_path: "/tmp/test_simulation"
-  temperature: 27.0
 
 testbench_config: "test_testbench.yaml"
 """)

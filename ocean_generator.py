@@ -327,26 +327,24 @@ if __name__ == "__main__":
     from config import SimulationConfig
     
     # 创建测试配置
-    test_config = SimulationConfig(
-        project_dir="/path/to/project",
-        library_name="test_lib",
-        cell_name="test_cell", 
-        simulation_path="/path/to/simulation",
-        design_type="schematic",
-        simulator="spectre",
-        model_files=[
-            ["/path/to/models/design.scs", ""],
-            ["/path/to/models/process.scs", "tt"]
-        ],
-        analyses={
-            "tran": {"stop": "1n", "step": "1p"},
-            "dc": {"saveOppoint": "t"}
-        },
-        design_variables={"vdd": 1.8, "temp_coeff": 1e-3},
-        save_nodes=["/vout", "/vin", "/vdd"],
-        initial_conditions={"/vin": 0.0},
-        temperature=27.0
-    )
+    test_config = SimulationConfig()
+    test_config.project_dir = "/path/to/project"
+    test_config.library_name = "test_lib"
+    test_config.cell_name = "test_cell" 
+    test_config.simulation_path = "/path/to/simulation"
+    test_config.design_type = "schematic"
+    test_config.simulator = "spectre"
+    test_config.model_files = [
+        ["/path/to/models/design.scs", ""],
+        ["/path/to/models/process.scs", "tt"]
+    ]
+    test_config.analyses = {
+        "tran": {"stop": "1n", "step": "1p"},
+        "dc": {"saveOppoint": "t"}
+    }
+    test_config.design_variables = {"vdd": 1.8, "temp_coeff": 1e-3}
+    test_config.save_nodes = ["/vout", "/vin", "/vdd"]
+    test_config.initial_conditions = {"/vin": 0.0}
     
     # 生成Ocean脚本
     generator = OceanScriptGenerator(test_config)

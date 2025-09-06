@@ -112,6 +112,11 @@ analyses:
 stimulus:
   files: [] # 空数组，跳过激励文件验证
 
+# 环境配置
+environment:
+  temperature: 27.0 # 仿真温度 (摄氏度)
+  supply_voltage: 1.8 # 电源电压 (V)
+
 # 设计变量
 variables:
   vdd: 1.8 # 电源电压

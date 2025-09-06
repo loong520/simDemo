@@ -319,6 +319,12 @@ class ConfigReader(object):
             if 'initial_conditions' in self.testbench_config_data:
                 sim_config.initial_conditions = self.testbench_config_data['initial_conditions']
             
+            # 从testbench配置文件加载环境配置
+            if 'environment' in self.testbench_config_data:
+                env_config = self.testbench_config_data['environment']
+                sim_config.temperature = float(env_config.get('temperature', 27.0))
+                sim_config.supply_voltage = float(env_config.get('supply_voltage', 1.8))
+            
             # 从testbench配置文件加载后处理配置
             if 'post_processing' in self.testbench_config_data:
                 sim_config.post_processing = self.testbench_config_data['post_processing']
@@ -327,6 +333,67 @@ class ConfigReader(object):
             
         except Exception as e:
             raise ValueError("Configuration file parsing error: {}".format(e))
+    
+    def load_system_config(self):
+        """
+        便捷函数：加载系统配置文件并返回配置对象（用于HTTP接口）
+        
+        Returns:
+            仿真配置对象（仅包含系统配置）
+        """
+        config = SimulationConfig()
+        
+        # 从系统配置文件加载EDA工具配置
+        if 'eda_tools' in self.system_config_data:
+            eda_config = self.system_config_data['eda_tools']
+            
+            # 创建EDA工具配置对象
+            tools_config = EDASToolsConfig()
+            
+            # 解析各个工具的配置
+            for tool_name in ['spectre', 'virtuoso']:
+                if tool_name in eda_config:
+                    tool_config_data = eda_config[tool_name]
+                    tool_config = EDATool(
+                        executable=tool_config_data.get('executable', ''),
+                        launch_args=tool_config_data.get('launch_args', []),
+                        environment_variables=tool_config_data.get('environment_variables', []),
+                        options=tool_config_data.get('options', {})
+                    )
+                    setattr(tools_config, tool_name, tool_config)
+            
+            config.eda_tools = tools_config
+        
+        # 从系统配置文件加载服务器配置
+        if 'server' in self.system_config_data:
+            server_config = self.system_config_data['server']
+            config.server = ServerConfig(
+                url=server_config.get('url', ''),
+                api_key=server_config.get('api_key', '')
+            )
+        
+        return config
+    
+    def load_task_config(self, config_file):
+        """
+        便捷函数：加载仿真任务配置文件并返回配置对象
+        
+        Args:
+            config_file: 仿真任务配置文件路径
+            
+        Returns:
+            仿真配置对象
+        """
+        reader = ConfigReader(config_file)
+        config = reader.get_simulation_config()
+        
+        # 验证配置
+        errors = reader.validate_config(config)
+        if errors:
+            error_msg = "Configuration file validation failed:\n" + "\n".join("- {}".format(error) for error in errors)
+            raise ValueError(error_msg)
+        
+        return config
     
     def validate_config(self, config):
         """
@@ -408,38 +475,7 @@ def load_system_config():
         仿真配置对象（仅包含系统配置）
     """
     reader = ConfigReader()
-    config = SimulationConfig()
-    
-    # 从系统配置文件加载EDA工具配置
-    if 'eda_tools' in reader.system_config_data:
-        eda_config = reader.system_config_data['eda_tools']
-        
-        # 创建EDA工具配置对象
-        tools_config = EDASToolsConfig()
-        
-        # 解析各个工具的配置
-        for tool_name in ['spectre', 'virtuoso']:
-            if tool_name in eda_config:
-                tool_config_data = eda_config[tool_name]
-                tool_config = EDATool(
-                    executable=tool_config_data.get('executable', ''),
-                    launch_args=tool_config_data.get('launch_args', []),
-                    environment_variables=tool_config_data.get('environment_variables', []),
-                    options=tool_config_data.get('options', {})
-                )
-                setattr(tools_config, tool_name, tool_config)
-        
-        config.eda_tools = tools_config
-    
-    # 从系统配置文件加载服务器配置
-    if 'server' in reader.system_config_data:
-        server_config = reader.system_config_data['server']
-        config.server = ServerConfig(
-            url=server_config.get('url', ''),
-            api_key=server_config.get('api_key', '')
-        )
-    
-    return config
+    return reader.load_system_config()
 
 
 def load_task_config(config_file):
@@ -453,15 +489,7 @@ def load_task_config(config_file):
         仿真配置对象
     """
     reader = ConfigReader(config_file)
-    config = reader.get_simulation_config()
-    
-    # 验证配置
-    errors = reader.validate_config(config)
-    if errors:
-        error_msg = "Configuration file validation failed:\n" + "\n".join("- {}".format(error) for error in errors)
-        raise ValueError(error_msg)
-    
-    return config
+    return reader.load_task_config(config_file)
 
 
 if __name__ == "__main__":
