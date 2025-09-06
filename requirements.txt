@@ -4,5 +4,5 @@ numpy>=1.21.0
 pandas>=1.3.0
 matplotlib>=3.5.0
 skillbridge>=0.14.0
-urllib3>=1.26.15
+urllib3==1.26.15
 requests>=2.25.0
